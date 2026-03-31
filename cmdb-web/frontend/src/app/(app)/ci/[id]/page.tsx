@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Card, Descriptions, Tag, Button, Space, Spin, Row, Col, Table, Divider } from 'antd'
+import { Card, Descriptions, Tag, Button, Space, Spin, Row, Col, Table } from 'antd'
 import { EditOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import type { ColumnsType } from 'antd/es/table'
@@ -47,19 +47,19 @@ export default function CIDetailPage() {
       title: '目标配置项',
       dataIndex: 'targetCI',
       key: 'targetCI',
-      dataTestid: 'cell-relation-target',
+      render: (text: string) => <span data-testid="cell-relation-target">{text}</span>,
     },
     {
       title: '关系类型',
       dataIndex: 'relationType',
       key: 'relationType',
-      dataTestid: 'cell-relation-type',
+      render: (text: string) => <span data-testid="cell-relation-type">{text}</span>,
     },
     {
       title: '描述',
       dataIndex: 'description',
       key: 'description',
-      dataTestid: 'cell-relation-desc',
+      render: (text: string) => <span data-testid="cell-relation-desc">{text}</span>,
     },
   ]
 

@@ -26,25 +26,25 @@ export default function ChangeListPage() {
       title: '配置项',
       dataIndex: 'ciName',
       key: 'ciName',
-      dataTestid: 'cell-change-ciName',
+      render: (text: string) => <span data-testid="cell-change-ciName">{text}</span>,
     },
     {
       title: '变更类型',
       dataIndex: 'changeType',
       key: 'changeType',
-      dataTestid: 'cell-change-type',
+      render: (text: string) => <span data-testid="cell-change-type">{text}</span>,
     },
     {
       title: '描述',
       dataIndex: 'description',
       key: 'description',
-      dataTestid: 'cell-change-desc',
+      render: (text: string) => <span data-testid="cell-change-desc">{text}</span>,
     },
     {
       title: '操作人',
       dataIndex: 'operator',
       key: 'operator',
-      dataTestid: 'cell-change-operator',
+      render: (text: string) => <span data-testid="cell-change-operator">{text}</span>,
     },
     {
       title: '状态',
@@ -65,20 +65,18 @@ export default function ChangeListPage() {
         }
         return <Tag color={colorMap[status]}>{labelMap[status]}</Tag>
       },
-      dataTestid: 'cell-change-status',
     },
     {
       title: '申请时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      dataTestid: 'cell-change-createdAt',
+      render: (text: string) => <span data-testid="cell-change-createdAt">{text}</span>,
     },
     {
       title: '审批人',
       dataIndex: 'approvedBy',
       key: 'approvedBy',
-      render: (val) => val || '-',
-      dataTestid: 'cell-change-approvedBy',
+      render: (val) => <span data-testid="cell-change-approvedBy">{val || '-'}</span>,
     },
     {
       title: '操作',

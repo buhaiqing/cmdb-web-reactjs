@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, Page } from '@playwright/test'
 
 export class CICreatePage {
-  constructor(private page: any) {}
+  constructor(private page: Page) {}
 
   async goto() {
     await this.page.goto('/ci/create')
@@ -30,6 +30,6 @@ export class CICreatePage {
   }
 
   async expectCreateSuccess() {
-    await this.page.waitForURL(url => url.pathname.includes('/ci/list'), { timeout: 10000 })
+    await this.page.waitForURL((url: URL) => url.pathname.includes('/ci/list'), { timeout: 10000 })
   }
 }

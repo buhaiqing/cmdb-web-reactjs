@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import { Table, Card, Space, Button, Input, Select, DatePicker } from 'antd'
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import dayjs from 'dayjs'
 
 const { RangePicker } = DatePicker
 
@@ -28,7 +27,7 @@ export default function AuditLogPage() {
       title: '用户',
       dataIndex: 'user',
       key: 'user',
-      dataTestid: 'cell-audit-user',
+      render: (text: string) => <span data-testid="cell-audit-user">{text}</span>,
     },
     {
       title: '操作',
@@ -45,38 +44,36 @@ export default function AuditLogPage() {
         const config = actionMap[action] || { color: 'default', label: action }
         return <span style={{ color: config.color }}>{config.label}</span>
       },
-      dataTestid: 'cell-audit-action',
     },
     {
       title: '资源类型',
       dataIndex: 'resourceType',
       key: 'resourceType',
-      dataTestid: 'cell-audit-resourceType',
+      render: (text: string) => <span data-testid="cell-audit-resourceType">{text}</span>,
     },
     {
       title: '资源',
       dataIndex: 'resource',
       key: 'resource',
-      dataTestid: 'cell-audit-resource',
+      render: (text: string) => <span data-testid="cell-audit-resource">{text}</span>,
     },
     {
       title: 'IP地址',
       dataIndex: 'ip',
       key: 'ip',
-      dataTestid: 'cell-audit-ip',
+      render: (text: string) => <span data-testid="cell-audit-ip">{text}</span>,
     },
     {
       title: '时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      dataTestid: 'cell-audit-createdAt',
+      render: (text: string) => <span data-testid="cell-audit-createdAt">{text}</span>,
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => (status === 'success' ? '成功' : '失败'),
-      dataTestid: 'cell-audit-status',
+      render: (status: string) => <span data-testid={`cell-audit-status-${status}`}>{status === 'success' ? '成功' : '失败'}</span>,
     },
   ]
 

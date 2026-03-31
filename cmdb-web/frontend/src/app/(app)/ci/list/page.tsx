@@ -1,13 +1,11 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Table, Button, Input, Space, Tag, Card, Row, Col, Select, DatePicker } from 'antd'
+import { Table, Button, Input, Space, Tag, Card, Row, Col, Select } from 'antd'
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import Link from 'next/link'
 import { useCIStore, CI } from '@/stores/ci'
-
-const { RangePicker } = DatePicker
 
 export default function CIListPage() {
   const { ciList, pagination, isLoading, fetchCIList } = useCIStore()
@@ -60,7 +58,7 @@ export default function CIListPage() {
       title: '名称',
       dataIndex: 'name',
       key: 'name',
-      fixed: 'left',
+      fixed: 'left' as const,
       width: 200,
       render: (name: string, record: CI) => (
         <Link href={`/ci/${record.id}`} data-testid={`link-ci-name-${record.id}`}>
@@ -136,7 +134,7 @@ export default function CIListPage() {
     {
       title: '操作',
       key: 'action',
-      fixed: 'right',
+      fixed: 'right' as const,
       width: 150,
       render: (_: unknown, record: CI) => (
         <Space>

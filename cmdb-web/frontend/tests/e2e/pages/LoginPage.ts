@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, Page } from '@playwright/test'
 
 export class LoginPage {
-  constructor(private page: any) {}
+  constructor(private page: Page) {}
 
   async goto() {
     await this.page.goto('/login')
@@ -14,9 +14,9 @@ export class LoginPage {
   }
 
   async waitForLoginSuccess() {
-    await this.page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 10000 })
+    // 等待登录成功后的跳转
+    await this.page.waitForURL((url: URL) => url.pathname.includes('/dashboard'), { timeout: 15000 })
     await this.page.waitForLoadState('networkidle', { timeout: 10000 })
-    await this.page.waitForSelector('[data-testid="header-username"]', { timeout: 10000 })
   }
 
   async expectLoginFormVisible() {

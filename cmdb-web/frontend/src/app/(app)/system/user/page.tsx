@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Table, Card, Space, Button, Row, Col } from 'antd'
+import { Table, Card, Space, Button } from 'antd'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 
@@ -22,13 +22,13 @@ export default function UserManagePage() {
       title: '用户名',
       dataIndex: 'username',
       key: 'username',
-      dataTestid: 'cell-user-username',
+      render: (text: string) => <span data-testid="cell-user-username">{text}</span>,
     },
     {
       title: '邮箱',
       dataIndex: 'email',
       key: 'email',
-      dataTestid: 'cell-user-email',
+      render: (text: string) => <span data-testid="cell-user-email">{text}</span>,
     },
     {
       title: '角色',
@@ -42,22 +42,20 @@ export default function UserManagePage() {
           auditor: { color: 'orange', label: '审计员' },
         }
         const config = roleMap[role] || { color: 'default', label: role }
-        return <span style={{ color: config.color }}>{config.label}</span>
+        return <span style={{ color: config.color }} data-testid={`cell-user-role-${role}`}>{config.label}</span>
       },
-      dataTestid: 'cell-user-role',
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => (status === 'active' ? '启用' : '禁用'),
-      dataTestid: 'cell-user-status',
+      render: (status: string) => <span data-testid={`cell-user-status-${status}`}>{status === 'active' ? '启用' : '禁用'}</span>,
     },
     {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      dataTestid: 'cell-user-createdAt',
+      render: (text: string) => <span data-testid="cell-user-createdAt">{text}</span>,
     },
     {
       title: '操作',

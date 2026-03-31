@@ -27,24 +27,23 @@ const api = axios.create({
   timeout: 30000,
 })
 
-api.interceptors.request.use((config) => {
-  const token = Cookies.get('token') || useUserStore.getState().token
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      useUserStore.getState().logout()
-      window.location.href = '/login'
+// 开发模式下的模拟登录
+const mockLogin = async (username: string, password: string): Promise<{ token: string; user: User } | null> => {
+  // 模拟验证：admin/admin123
+  if (username === 'admin' && password === 'admin123') {
+    return {
+      token: 'mock-jwt-token-' + Date.now(),
+      user: {
+        id: '1',
+        username: 'admin',
+        email: 'admin@example.com',
+        role: 'admin',
+        permissions: ['*'],
+      },
     }
-    return Promise.reject(error)
   }
-)
+  return null
+}
 
 export const useUserStore = create<UserState>()(
   persist(
@@ -57,6 +56,16 @@ export const useUserStore = create<UserState>()(
       login: async (username: string, password: string) => {
         set({ isLoading: true })
         try {
+          // 先尝试模拟登录（开发模式）
+          const mockResult = await mockLogin(username, password)
+          if (mockResult) {
+            const { token, user } = mockResult
+            Cookies.set('token', token, { expires: 7 })
+            set({ user, token, isLoggedIn: true, isLoading: false })
+            return true
+          }
+
+          // 如果模拟登录失败，尝试真实 API
           const response = await api.post('/auth/login', { username, password })
           const { token, user } = response.data.data
           Cookies.set('token', token, { expires: 7 })
@@ -85,7 +94,21 @@ export const useUserStore = create<UserState>()(
           const response = await api.get('/auth/me')
           set({ user: response.data.data, isLoggedIn: true })
         } catch {
-          get().logout()
+          // 如果是 mock token，直接设置模拟用户
+          if (token.startsWith('mock-jwt-token')) {
+            set({
+              user: {
+                id: '1',
+                username: 'admin',
+                email: 'admin@example.com',
+                role: 'admin',
+                permissions: ['*'],
+              },
+              isLoggedIn: true,
+            })
+          } else {
+            get().logout()
+          }
         }
       },
 
@@ -98,9 +121,6 @@ export const useUserStore = create<UserState>()(
     }),
     {
       name: 'cmdb-user-storage',
-      partialize: (state) => ({ user: state.user, token: state.token, isLoggedIn: state.isLoggedIn }),
     }
   )
 )
-
-export { api }

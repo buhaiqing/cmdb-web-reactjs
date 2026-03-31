@@ -1,71 +1,121 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
-import { Layout, Menu, Button, Avatar, Dropdown, Space } from 'antd'
+import { Layout, Menu, Avatar, Dropdown, Button, Space } from 'antd'
 import {
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
   UserOutlined,
   LogoutOutlined,
+  SettingOutlined,
   BellOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
+import { useRouter } from 'next/navigation'
 import { useUserStore } from '@/stores/user'
-import { usePermissionStore } from '@/stores/permission'
+import { useLayoutStore } from '@/stores/layout'
 
 const { Header } = Layout
 
 export default function AppHeader() {
+  const router = useRouter()
   const { user, logout } = useUserStore()
-  const { collapsed, toggleCollapsed } = usePermissionStore()
+  const { collapsed, toggleCollapsed } = useLayoutStore()
 
   const userMenuItems: MenuProps['items'] = [
     {
       key: 'profile',
+      icon: <UserOutlined />,
       label: '个人中心',
+    },
+    {
+      key: 'settings',
+      icon: <SettingOutlined />,
+      label: '系统设置',
     },
     {
       type: 'divider',
     },
     {
       key: 'logout',
-      label: '退出登录',
       icon: <LogoutOutlined />,
-      onClick: () => logout(),
+      label: '退出登录',
+      onClick: () => {
+        logout()
+        router.push('/login')
+      },
+    },
+  ]
+
+  const menuItems: MenuProps['items'] = [
+    {
+      key: '/dashboard',
+      label: '首页',
+    },
+    {
+      key: '/ci/list',
+      label: '配置项管理',
+    },
+    {
+      key: '/change/list',
+      label: '变更管理',
+    },
+    {
+      key: '/user/list',
+      label: '用户管理',
+    },
+    {
+      key: '/role/list',
+      label: '角色管理',
     },
   ]
 
   return (
-    <Header className="app-header" data-testid="header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <Button
-          type="text"
-          icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          onClick={toggleCollapsed}
-          style={{ color: '#fff', fontSize: 18 }}
-          data-testid="button-toggle-sidebar"
-        />
-        <Link href="/dashboard" style={{ color: '#fff', fontSize: 18, fontWeight: 600 }}>
+    <Header
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: '#001529',
+        padding: '0 24px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div
+          style={{
+            color: 'white',
+            fontSize: '20px',
+            fontWeight: 'bold',
+            marginRight: '40px',
+          }}
+        >
           CMDB 配置管理系统
-        </Link>
+        </div>
+        <Menu
+          theme="dark"
+          mode="horizontal"
+          defaultSelectedKeys={['/dashboard']}
+          items={menuItems}
+          style={{ flex: 1, minWidth: 400 }}
+          onClick={({ key }) => router.push(key)}
+        />
       </div>
-
-      <Space size={16}>
+      <Space size="middle">
         <Button
           type="text"
           icon={<BellOutlined />}
-          style={{ color: '#fff', fontSize: 18 }}
-          data-testid="button-notifications"
+          style={{ color: 'rgba(255,255,255,0.85)' }}
         />
-
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-          <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Avatar icon={<UserOutlined />} data-testid="header-avatar" />
-            <span style={{ color: '#fff' }} data-testid="header-username">
-              {user?.username || '用户'}
-            </span>
-          </div>
+          <Space style={{ cursor: 'pointer' }}>
+            <Avatar
+              style={{ backgroundColor: '#1890ff' }}
+              icon={<UserOutlined />}
+            />
+            <span style={{ color: 'white' }} data-testid="header-username">{user?.username || 'Admin'}</span>
+          </Space>
         </Dropdown>
       </Space>
     </Header>

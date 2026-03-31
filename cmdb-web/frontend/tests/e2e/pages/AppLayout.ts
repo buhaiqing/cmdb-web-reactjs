@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, Page } from '@playwright/test'
 
 export class AppLayout {
-  constructor(private page: any) {}
+  constructor(private page: Page) {}
 
   async expectLayoutVisible() {
     await expect(this.page.locator('[data-testid="layout-app"]')).toBeVisible()
@@ -12,6 +12,11 @@ export class AppLayout {
 
   async expectUserLoggedIn(username: string) {
     await expect(this.page.locator('[data-testid="header-username"]')).toContainText(username)
+  }
+
+  async navigateTo(path: string) {
+    await this.page.click(`[data-testid="menu-item-${path}"]`)
+    await this.page.waitForURL(`**${path}`)
   }
 
   async toggleSidebar() {

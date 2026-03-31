@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Table, Card, Space, Button, Tag } from 'antd'
+import { Table, Card, Space, Button } from 'antd'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 
@@ -22,31 +22,31 @@ export default function RoleManagePage() {
       title: '角色名称',
       dataIndex: 'name',
       key: 'name',
-      dataTestid: 'cell-role-name',
+      render: (text: string) => <span data-testid="cell-role-name">{text}</span>,
     },
     {
       title: '角色代码',
       dataIndex: 'code',
       key: 'code',
-      dataTestid: 'cell-role-code',
+      render: (text: string) => <span data-testid="cell-role-code">{text}</span>,
     },
     {
       title: '描述',
       dataIndex: 'description',
       key: 'description',
-      dataTestid: 'cell-role-desc',
+      render: (text: string) => <span data-testid="cell-role-desc">{text}</span>,
     },
     {
       title: '用户数',
       dataIndex: 'userCount',
       key: 'userCount',
-      dataTestid: 'cell-role-userCount',
+      render: (count: number) => <span data-testid="cell-role-userCount">{count}</span>,
     },
     {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      dataTestid: 'cell-role-createdAt',
+      render: (text: string) => <span data-testid="cell-role-createdAt">{text}</span>,
     },
     {
       title: '操作',

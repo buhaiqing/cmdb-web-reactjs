@@ -50,10 +50,13 @@ export const useCIStore = create<CIState>((set, get) => ({
   fetchCIList: async (params) => {
     set({ isLoading: true })
     try {
-      const { current, pageSize, filters } = get()
+      const state = get()
+      const currentPage = state.pagination.current
+      const pageSize = state.pagination.pageSize
+      const filters = state.filters
       const response = await api.get('/ci', {
         params: {
-          page: params?.page || current,
+          page: params?.page || currentPage,
           pageSize: params?.pageSize || pageSize,
           ...params?.filters || filters,
         },
@@ -61,7 +64,7 @@ export const useCIStore = create<CIState>((set, get) => ({
       const { items, total } = response.data.data
       set({
         ciList: items,
-        pagination: { ...get().pagination, total },
+        pagination: { ...state.pagination, total },
         isLoading: false,
       })
     } catch (error) {

@@ -66,25 +66,25 @@ export default function DashboardPage() {
       title: '配置项',
       dataIndex: 'ciName',
       key: 'ciName',
-      dataTestid: 'cell-change-ciName',
+      render: (text: string) => <span data-testid="cell-change-ciName">{text}</span>,
     },
     {
       title: '变更类型',
       dataIndex: 'changeType',
       key: 'changeType',
-      dataTestid: 'cell-change-type',
+      render: (text: string) => <span data-testid="cell-change-type">{text}</span>,
     },
     {
       title: '操作人',
       dataIndex: 'operator',
       key: 'operator',
-      dataTestid: 'cell-change-operator',
+      render: (text: string) => <span data-testid="cell-change-operator">{text}</span>,
     },
     {
       title: '时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      dataTestid: 'cell-change-time',
+      render: (text: string) => <span data-testid="cell-change-time">{text}</span>,
     },
     {
       title: '状态',
@@ -103,9 +103,8 @@ export default function DashboardPage() {
           completed: '已完成',
           rejected: '已拒绝',
         }
-        return <Tag color={colorMap[status] || 'default'}>{labelMap[status] || status}</Tag>
+        return <Tag color={colorMap[status]} data-testid={`cell-change-status-${status}`}>{labelMap[status]}</Tag>
       },
-      dataTestid: 'cell-change-status',
     },
   ]
 
