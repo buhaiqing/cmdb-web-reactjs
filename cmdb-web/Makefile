@@ -1,4 +1,4 @@
-.PHONY: help install dev test test:e2e test:e2e:ui test:e2e:headed test:report build clean kill-ports
+.PHONY: help install dev test test-e2e test-e2e-ui test-e2e-headed test-e2e-mock test-report test-full build clean kill-ports
 
 # 默认目标
 help:
@@ -7,17 +7,19 @@ help:
 	@echo "可用命令:"
 	@echo "  make install        - 安装依赖"
 	@echo "  make dev           - 启动开发服务器 (端口 3000)"
-	@echo "  make test:e2e      - 运行 E2E 测试"
-	@echo "  make test:e2e:ui   - 运行 E2E 测试 (UI 模式)"
-	@echo "  make test:e2e:headed - 运行 E2E 测试 (有头模式)"
-	@echo "  make test:report   - 查看测试报告"
+	@echo "  make test-e2e      - 运行前端 E2E 测试"
+	@echo "  make test-e2e-mock  - 运行前端 E2E 测试 (使用 Playwright 路由拦截)"
+	@echo "  make test-e2e-ui   - 运行前端 E2E 测试 (UI 模式)"
+	@echo "  make test-e2e-headed - 运行前端 E2E 测试 (有头模式)"
+	@echo "  make test-report   - 查看测试报告"
+	@echo "  make test-full     - 运行前后端一体化测试 (真实数据库 + 前端 E2E 测试)"
 	@echo "  make build         - 生产环境构建"
 	@echo "  make clean         - 清理构建产物"
 	@echo "  make kill-ports    - 清理占用端口的进程"
 
 # 安装依赖
 install:
-	cd cmdb-web/frontend && npm install --legacy-peer-deps
+	cd frontend && npm install --legacy-peer-deps
 
 # 启动开发服务器
 dev:
@@ -27,41 +29,173 @@ dev:
 	@lsof -ti:3002 | xargs kill -9 2>/dev/null || true
 	@echo "等待端口释放..."
 	@sleep 2
-	cd cmdb-web/frontend && npm run dev
+	cd frontend && npm run dev
 
-# 运行 E2E 测试
-test:e2e:
+# 运行 E2E 测试（真实后端）
+test-e2e:
 	@echo "停止占用端口的进程..."
 	@lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+	@lsof -ti:8000 | xargs kill -9 2>/dev/null || true
 	@lsof -ti:9323 | xargs kill -9 2>/dev/null || true
 	@sleep 2
+	
+	@echo "启动后端服务器..."
+	cd backend && python3 -m uvicorn app.main:app --reload &
+	@sleep 3
+	
 	@echo "启动开发服务器..."
-	cd cmdb-web/frontend && npm run dev &
+	cd frontend && npm run dev &
 	@sleep 5
+	
 	@echo "运行 E2E 测试..."
-	cd cmdb-web/frontend && npm run test:e2e
+	cd frontend && npm run test:e2e
+	
+	@echo "清理进程..."
+	@lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+	@lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+	@lsof -ti:9323 | xargs kill -9 2>/dev/null || true
+
+# 运行 E2E 测试（使用 Playwright 路由拦截）
+test-e2e-mock:
+	@echo "停止占用端口的进程..."
+	@lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+	@lsof -ti:9323 | xargs kill -9 2>/dev/null || true
+	@sleep 2
+	
+	@echo "启动开发服务器（端口 3001）..."
+	cd frontend && npm run dev -- -p 3001 &
+	@sleep 5
+	
+	@echo "运行 E2E 测试（使用路由拦截）..."
+	cd frontend && npm run test:e2e
+	
+	@echo "清理进程..."
+	@lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+	@lsof -ti:9323 | xargs kill -9 2>/dev/null || true
 
 # 运行 E2E 测试 (UI 模式)
-test:e2e:ui:
-	cd cmdb-web/frontend && npm run test:e2e:ui
+test-e2e-ui:
+	cd frontend && npm run test:e2e:ui
 
 # 运行 E2E 测试 (有头模式)
-test:e2e:headed:
-	cd cmdb-web/frontend && npm run test:e2e:headed
+test-e2e-headed:
+	cd frontend && npm run test:e2e:headed
 
 # 查看测试报告
-test:report:
+test-report:
 	@lsof -ti:9323 | xargs kill -9 2>/dev/null || true
 	@sleep 1
-	cd cmdb-web/frontend && npx playwright show-report
+	cd frontend && npx playwright show-report
 
 # 生产环境构建
 build:
-	cd cmdb-web/frontend && npm run build
+	cd frontend && npm run build
 
 # 清理构建产物
 clean:
-	cd cmdb-web/frontend && rm -rf .next node_modules/.cache playwright-report test-results
+	cd frontend && rm -rf .next node_modules/.cache playwright-report test-results
+
+# 检查端口是否被占用
+check_port = \
+	@if lsof -Pi :$(1) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+		echo "端口 $(1) 已被占用，尝试清理..."; \
+		lsof -ti:$(1) | xargs kill -9 2>/dev/null || echo "清理端口 $(1) 失败"; \
+		sleep 2; \
+		if lsof -Pi :$(1) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+			echo "错误: 端口 $(1) 仍然被占用，请手动清理后重试"; \
+			exit 1; \
+		fi; \
+	fi
+
+# 等待端口可用
+wait_for_port = \
+	@echo "等待端口 $(1) 可用..."; \
+	for i in $$(seq 1 10); do \
+		if ! lsof -Pi :$(1) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+			echo "端口 $(1) 已释放"; \
+			break; \
+		fi; \
+		echo "等待中... ($$i/10)"; \
+		sleep 1; \
+	done; \
+	if lsof -Pi :$(1) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+		echo "错误: 端口 $(1) 长时间无法释放，请手动清理"; \
+		exit 1; \
+	fi
+
+# 运行前后端一体化测试（真实数据库）
+test-full:
+	@echo "开始运行前后端一体化测试..."
+	
+	# 检查并清理端口
+	@echo "检查并清理端口..."
+	$(call check_port,3001)
+	$(call check_port,8000)
+	$(call check_port,9323)
+	$(call wait_for_port,3001)
+	$(call wait_for_port,8000)
+	$(call wait_for_port,9323)
+	
+	# 设置测试环境变量
+	@export TEST_MODE=true
+	
+	# 初始化测试数据库和测试数据
+	@echo "初始化测试数据库和测试数据..."
+	@cd backend && python3 -c "from app.seed import seed_test_data; import asyncio; asyncio.run(seed_test_data())"
+	
+	# 启动后端服务器（后台运行，使用测试配置）
+	@echo "启动后端服务器..."
+	@cd backend && python3 -m uvicorn app.main:app --reload --port 8000 & \
+	BACKEND_PID=$$! && \
+	sleep 3 && \
+	echo "检查后端服务启动状态..." && \
+	for i in $$(seq 1 10); do \
+		if curl -s http://localhost:8000/api/health >/dev/null 2>&1; then \
+			echo "后端服务启动成功"; \
+			break; \
+		fi; \
+		echo "等待后端服务启动... ($$i/10)"; \
+		sleep 2; \
+	done; \
+	if ! curl -s http://localhost:8000/api/health >/dev/null 2>&1; then \
+		echo "错误: 后端服务启动失败"; \
+		kill $$BACKEND_PID 2>/dev/null || true; \
+		lsof -ti:3001 | xargs kill -9 2>/dev/null || true; \
+		lsof -ti:8000 | xargs kill -9 2>/dev/null || true; \
+		lsof -ti:9323 | xargs kill -9 2>/dev/null || true; \
+		exit 1; \
+	fi && \
+	echo "启动前端开发服务器..." && \
+	cd frontend && npm run dev -- -p 3001 & \
+	FRONTEND_PID=$$! && \
+	sleep 5 && \
+	echo "检查前端服务启动状态..." && \
+	for i in $$(seq 1 10); do \
+		if curl -s http://localhost:3001 >/dev/null 2>&1; then \
+			echo "前端服务启动成功"; \
+			break; \
+		fi; \
+		echo "等待前端服务启动... ($$i/10)"; \
+		sleep 2; \
+	done; \
+	if ! curl -s http://localhost:3001 >/dev/null 2>&1; then \
+		echo "错误: 前端服务启动失败"; \
+		kill $$BACKEND_PID 2>/dev/null || true; \
+		kill $$FRONTEND_PID 2>/dev/null || true; \
+		lsof -ti:3001 | xargs kill -9 2>/dev/null || true; \
+		lsof -ti:8000 | xargs kill -9 2>/dev/null || true; \
+		lsof -ti:9323 | xargs kill -9 2>/dev/null || true; \
+		exit 1; \
+	fi && \
+	echo "运行前端 E2E 测试..." && \
+	cd frontend && npm run test:e2e && \
+	echo "清理进程..." && \
+	kill $$BACKEND_PID 2>/dev/null || true && \
+	kill $$FRONTEND_PID 2>/dev/null || true && \
+	lsof -ti:3001 | xargs kill -9 2>/dev/null || true && \
+	lsof -ti:8000 | xargs kill -9 2>/dev/null || true && \
+	lsof -ti:9323 | xargs kill -9 2>/dev/null || true && \
+	echo "一体化测试完成"
 
 # 清理占用端口的进程
 kill-ports:

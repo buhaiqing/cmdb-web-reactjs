@@ -59,6 +59,48 @@ cmdb-web/
 
 ## 快速开始
 
+### 使用 Makefile（推荐）
+
+项目提供了 Makefile 来简化常用操作：
+
+```bash
+# 查看所有可用命令
+make help
+
+# 安装前端依赖
+make install
+
+# 启动开发服务器 (前端 http://localhost:3000)
+make dev
+
+# 运行前后端一体化测试（真实数据库 + 前端 E2E 测试）
+make test-full
+
+# 运行前端 E2E 测试（真实后端）
+make test-e2e
+
+# 运行前端 E2E 测试（使用 Playwright 路由拦截，无需后端）
+make test-e2e-mock
+
+# 运行前端 E2E 测试（UI 模式）
+make test-e2e-ui
+
+# 运行前端 E2E 测试（有头模式）
+make test-e2e-headed
+
+# 查看测试报告
+make test-report
+
+# 生产环境构建
+make build
+
+# 清理构建产物
+make clean
+
+# 清理占用端口的进程
+make kill-ports
+```
+
 ### 前端开发
 
 ```bash
@@ -79,6 +121,9 @@ npm run lint
 
 # 类型检查
 npm run typecheck
+
+# 运行 E2E 测试
+npm run test:e2e
 ```
 
 ### 后端开发
@@ -93,7 +138,7 @@ python -m venv venv && source venv/bin/activate
 # 安装依赖
 pip install -r requirements.txt
 
-# 启动开发服务器
+# 启动开发服务器 (http://localhost:8000)
 uvicorn app.main:app --reload
 
 # 运行测试（带覆盖率报告）
