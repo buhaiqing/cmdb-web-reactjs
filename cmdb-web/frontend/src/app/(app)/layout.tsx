@@ -10,22 +10,19 @@ const { Content } = Layout
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const { isLoggedIn, checkAuth } = useUserStore()
+  const { isLoggedIn, isHydrated, checkAuth } = useUserStore()
 
   useEffect(() => {
-    const initAuth = async () => {
-      await checkAuth()
-    }
-    initAuth()
+    checkAuth()
   }, [checkAuth])
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (isHydrated && !isLoggedIn) {
       router.push('/login')
     }
-  }, [isLoggedIn, router])
+  }, [isLoggedIn, isHydrated, router])
 
-  if (!isLoggedIn) {
+  if (!isHydrated || !isLoggedIn) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <Spin size="large" />

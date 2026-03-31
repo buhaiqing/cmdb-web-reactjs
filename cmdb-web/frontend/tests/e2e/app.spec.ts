@@ -153,13 +153,10 @@ test.describe('CMDB E2E Tests', () => {
     await loginPage.waitForLoginSuccess()
     await page.waitForSelector('[data-testid="layout-app"]', { timeout: 10000 })
 
-    // 通过 URL 直接访问用户列表页面
     await page.goto('/system/user')
     await page.waitForURL('**/system/user', { timeout: 10000 })
 
-    // 等待页面加载完成
-    await page.waitForSelector('[data-testid="page-user-manage"]', { timeout: 15000 })
-    await expect(page.locator('[data-testid="page-user-manage"]')).toBeVisible()
+    await expect(page.locator('[data-testid="page-user-manage"]')).toBeVisible({ timeout: 15000 })
     await expect(page.locator('[data-testid="table-user-list"]')).toBeVisible({ timeout: 10000 })
   })
 
@@ -169,13 +166,10 @@ test.describe('CMDB E2E Tests', () => {
     await loginPage.waitForLoginSuccess()
     await page.waitForSelector('[data-testid="layout-app"]', { timeout: 10000 })
 
-    // 通过 URL 直接访问角色列表页面
     await page.goto('/system/role')
     await page.waitForURL('**/system/role', { timeout: 10000 })
 
-    // 等待页面加载完成
-    await page.waitForSelector('[data-testid="page-role-manage"]', { timeout: 15000 })
-    await expect(page.locator('[data-testid="page-role-manage"]')).toBeVisible()
+    await expect(page.locator('[data-testid="page-role-manage"]')).toBeVisible({ timeout: 15000 })
     await expect(page.locator('[data-testid="table-role-list"]')).toBeVisible({ timeout: 10000 })
   })
 
@@ -185,13 +179,10 @@ test.describe('CMDB E2E Tests', () => {
     await loginPage.waitForLoginSuccess()
     await page.waitForSelector('[data-testid="layout-app"]', { timeout: 10000 })
 
-    // 通过 URL 直接访问审计日志页面
     await page.goto('/system/audit')
     await page.waitForURL('**/system/audit', { timeout: 10000 })
 
-    // 等待页面加载完成
-    await page.waitForSelector('[data-testid="page-audit-log"]', { timeout: 15000 })
-    await expect(page.locator('[data-testid="page-audit-log"]')).toBeVisible()
+    await expect(page.locator('[data-testid="page-audit-log"]')).toBeVisible({ timeout: 15000 })
     await expect(page.locator('[data-testid="table-audit-list"]')).toBeVisible({ timeout: 10000 })
   })
 })
