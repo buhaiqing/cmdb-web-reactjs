@@ -5,7 +5,7 @@ import { CIListPage } from './pages/CIListPage'
 import { CICreatePage } from './pages/CICreatePage'
 import { AppLayout } from './pages/AppLayout'
 
-test.describe('CMDB E2E Tests', () => {
+test.describe('CMDB 端到端测试', () => {
   let loginPage: LoginPage
   let dashboardPage: DashboardPage
   let ciListPage: CIListPage
@@ -112,7 +112,7 @@ test.describe('CMDB E2E Tests', () => {
     appLayout = new AppLayout(page)
   })
 
-  test('Login - Success with valid credentials', async ({ page }) => {
+  test('登录 - 使用有效凭证成功登录', async ({ page }) => {
     await loginPage.goto()
     await loginPage.expectLoginFormVisible()
     await loginPage.login('admin', 'admin123')
@@ -120,7 +120,7 @@ test.describe('CMDB E2E Tests', () => {
     await appLayout.expectUserLoggedIn('admin')
   })
 
-  test('Dashboard - Load successfully after login', async ({ page }) => {
+  test('仪表盘 - 登录后成功加载', async ({ page }) => {
     await loginPage.goto()
     await loginPage.login('admin', 'admin123')
     await loginPage.waitForLoginSuccess()
@@ -129,7 +129,7 @@ test.describe('CMDB E2E Tests', () => {
     await dashboardPage.expectDashboardVisible()
   })
 
-  test('CI Management - View CI list', async ({ page }) => {
+  test('配置项管理 - 查看配置项列表', async ({ page }) => {
     await loginPage.goto()
     await loginPage.login('admin', 'admin123')
     await loginPage.waitForLoginSuccess()
@@ -138,7 +138,7 @@ test.describe('CMDB E2E Tests', () => {
     await ciListPage.expectCIListVisible()
   })
 
-  test('Navigation - Dashboard to CI list', async ({ page }) => {
+  test('导航 - 从仪表盘到配置项列表', async ({ page }) => {
     await loginPage.goto()
     await loginPage.login('admin', 'admin123')
     await loginPage.waitForLoginSuccess()
@@ -147,7 +147,7 @@ test.describe('CMDB E2E Tests', () => {
     await ciListPage.expectCIListVisible()
   })
 
-  test('System Management - User list page', async ({ page }) => {
+  test('系统管理 - 用户列表页面', async ({ page }) => {
     await loginPage.goto()
     await loginPage.login('admin', 'admin123')
     await loginPage.waitForLoginSuccess()
@@ -160,7 +160,7 @@ test.describe('CMDB E2E Tests', () => {
     await expect(page.locator('[data-testid="table-user-list"]')).toBeVisible({ timeout: 10000 })
   })
 
-  test('System Management - Role list page', async ({ page }) => {
+  test('系统管理 - 角色列表页面', async ({ page }) => {
     await loginPage.goto()
     await loginPage.login('admin', 'admin123')
     await loginPage.waitForLoginSuccess()
@@ -173,7 +173,7 @@ test.describe('CMDB E2E Tests', () => {
     await expect(page.locator('[data-testid="table-role-list"]')).toBeVisible({ timeout: 10000 })
   })
 
-  test('System Management - Audit log page', async ({ page }) => {
+  test('系统管理 - 审计日志页面', async ({ page }) => {
     await loginPage.goto()
     await loginPage.login('admin', 'admin123')
     await loginPage.waitForLoginSuccess()

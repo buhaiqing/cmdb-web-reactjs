@@ -156,6 +156,33 @@ async def update_change(
     return BaseResponse(message="变更更新成功")
 
 
+@router.get("/recent", response_model=BaseResponse)
+async def get_recent_changes(
+    limit: int = Query(5, ge=1, le=20),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """获取最近的变更记录"""
+    query = select(Change).order_by(Change.created_at.desc()).limit(limit)
+    result = await db.execute(query)
+    changes = result.scalars().all()
+
+    recent_changes = []
+    for change in changes:
+        ci_ids = json.loads(change.ci_ids) if change.ci_ids else []
+        recent_changes.append({
+            "id": change.id,
+            "title": change.title,
+            "type": change.type,
+            "status": change.status,
+            "priority": change.priority,
+            "applicantName": change.applicant_name,
+            "createdAt": change.created_at.strftime("%Y-%m-%d %H:%M:%S") if change.created_at else "",
+        })
+
+    return BaseResponse(data=recent_changes)
+
+
 @router.delete("/{change_id}", response_model=BaseResponse)
 async def delete_change(
     change_id: str,
