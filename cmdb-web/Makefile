@@ -1,4 +1,4 @@
-.PHONY: help install dev test test-e2e test-e2e-ui test-e2e-headed test-e2e-mock test-report test-full build clean kill-ports
+.PHONY: help install dev test test-e2e-ui test-e2e-headed test-e2e-mock test-report test-full build clean kill-ports
 
 # 默认目标
 help:
@@ -7,7 +7,6 @@ help:
 	@echo "可用命令:"
 	@echo "  make install        - 安装依赖"
 	@echo "  make dev           - 启动开发服务器 (端口 3000)"
-	@echo "  make test-e2e      - 运行前端 E2E 测试"
 	@echo "  make test-e2e-mock  - 运行前端 E2E 测试 (使用 Playwright 路由拦截)"
 	@echo "  make test-e2e-ui   - 运行前端 E2E 测试 (UI 模式)"
 	@echo "  make test-e2e-headed - 运行前端 E2E 测试 (有头模式)"
@@ -31,65 +30,7 @@ dev:
 	@sleep 2
 	cd frontend && npm run dev
 
-# 运行 E2E 测试（真实后端）
-test-e2e:
-	@echo "停止占用端口的进程..."
-	@lsof -ti:3000 | xargs kill -9 2>/dev/null || true
-	@lsof -ti:8000 | xargs kill -9 2>/dev/null || true
-	@lsof -ti:9323 | xargs kill -9 2>/dev/null || true
-	@sleep 2
-	
-	@echo "启动后端服务器..."
-	@cd backend && python3 -m uvicorn app.main:app --reload & \
-	BACKEND_PID=$$! && \
-	sleep 3 && \
-	echo "检查后端服务启动状态..." && \
-	for i in $$(seq 1 10); do \
-		if curl -s http://localhost:8000/api/health >/dev/null 2>&1; then \
-			echo "后端服务启动成功"; \
-			break; \
-		fi; \
-		echo "等待后端服务启动... ($$i/10)"; \
-		sleep 2; \
-	done; \
-	if ! curl -s http://localhost:8000/api/health >/dev/null 2>&1; then \
-		echo "错误: 后端服务启动失败"; \
-		kill $$BACKEND_PID 2>/dev/null || true; \
-		lsof -ti:3000 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:8000 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:9323 | xargs kill -9 2>/dev/null || true; \
-		exit 1; \
-	fi && \
-	echo "启动前端开发服务器..." && \
-	cd frontend && npm run dev & \
-	FRONTEND_PID=$$! && \
-	sleep 5 && \
-	echo "检查前端服务启动状态..." && \
-	for i in $$(seq 1 10); do \
-		if curl -s http://localhost:3000 >/dev/null 2>&1; then \
-			echo "前端服务启动成功"; \
-			break; \
-		fi; \
-		echo "等待前端服务启动... ($$i/10)"; \
-		sleep 2; \
-	done; \
-	if ! curl -s http://localhost:3000 >/dev/null 2>&1; then \
-		echo "错误: 前端服务启动失败"; \
-		kill $$BACKEND_PID 2>/dev/null || true; \
-		kill $$FRONTEND_PID 2>/dev/null || true; \
-		lsof -ti:3000 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:8000 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:9323 | xargs kill -9 2>/dev/null || true; \
-		exit 1; \
-	fi && \
-	echo "运行 E2E 测试..." && \
-	cd frontend && npm run test:e2e && \
-	echo "清理进程..." && \
-	kill $$BACKEND_PID 2>/dev/null || true && \
-	kill $$FRONTEND_PID 2>/dev/null || true && \
-	lsof -ti:3000 | xargs kill -9 2>/dev/null || true && \
-	lsof -ti:8000 | xargs kill -9 2>/dev/null || true && \
-	lsof -ti:9323 | xargs kill -9 2>/dev/null || true
+
 
 # 运行 E2E 测试（使用 Playwright 路由拦截）
 test-e2e-mock:

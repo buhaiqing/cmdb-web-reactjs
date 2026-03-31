@@ -24,17 +24,17 @@
 
 ## 项目简介
 
-基于 React 19 + Next.js 15 + TypeScript + Zustand + Ant Design 5.x 构建的现代化 CMDB 系统，用于管理 IT 基础设施的配置项、变更请求和审计日志。
+基于 React 18 + Next.js 14 + TypeScript + Zustand + Ant Design 5.x 构建的现代化 CMDB 系统，用于管理 IT 基础设施的配置项、变更请求和审计日志。
 
 ## 技术栈
 
 ### 前端
-- **框架**: React 19 + Next.js 15 (App Router)
+- **框架**: React 18 + Next.js 14 (App Router)
 - **语言**: TypeScript
 - **状态管理**: Zustand
 - **UI 组件**: Ant Design 5.x
 - **样式**: CSS Modules + Ant Design Design Tokens
-- **认证**: NextAuth.js (JWT)
+- **认证**: JWT token (使用 js-cookie 存储)
 - **测试**: Playwright (E2E)
 
 ### 后端
@@ -95,9 +95,6 @@ make dev
 
 # 运行前后端一体化测试（真实数据库 + 前端 E2E 测试）
 make test-full
-
-# 运行前端 E2E 测试（真实后端）
-make test-e2e
 
 # 运行前端 E2E 测试（使用 Playwright 路由拦截，无需后端）
 make test-e2e-mock
