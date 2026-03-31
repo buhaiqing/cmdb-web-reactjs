@@ -6,11 +6,12 @@
 from __future__ import annotations
 
 import asyncio
+import traceback
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Coroutine, Generic, TypeVar
+from typing import Any, Callable, Coroutine, Generic, TypeVar, Optional
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -21,7 +22,15 @@ from .approval_gateway import (
     ApprovalResult,
     get_approval_gateway,
 )
-from .base import AgentResult, BaseAgent
+from .error_handling import (
+    ErrorCategory,
+    ErrorCode,
+    ErrorContext,
+    FixSuggestion,
+    AgentError,
+    get_error_handler,
+    create_agent_error,
+)
 
 
 class TaskStatus(str, Enum):
@@ -206,8 +215,26 @@ class MessageBus:
         try:
             await handler(message)
         except Exception as e:
-            # 记录错误但不影响其他处理器
-            print(f"消息处理错误: {e}")
+            # 使用错误处理器记录错误
+            error_context = ErrorContext(
+                component="message_bus",
+                operation="handle_message",
+                input_data={
+                    "message_type": message.type.value,
+                    "sender": message.sender,
+                    "recipient": message.recipient,
+                },
+                environment={},
+                stack_trace=traceback.format_exc(),
+            )
+            
+            create_agent_error(
+                category=ErrorCategory.GENERATION_ERROR,
+                code=ErrorCode.GENERATION_FAILED,
+                message=f"消息处理错误: {str(e)}",
+                context=error_context,
+                retryable=True,
+            )
 
 
 class AgentOrchestrator:
@@ -219,6 +246,7 @@ class AgentOrchestrator:
     3. 跨Agent协作协调
     4. 工作流执行管理
     5. 人工确认集成
+    6. 错误处理与修复建议
 
     使用示例:
         orchestrator = AgentOrchestrator()
@@ -240,10 +268,11 @@ class AgentOrchestrator:
     """
 
     def __init__(self):
-        self.agents: dict[str, BaseAgent] = {}
+        self.agents: dict[str, Any] = {}
         self.agent_registrations: dict[str, AgentRegistration] = {}
         self.message_bus = MessageBus()
         self.approval_gateway = get_approval_gateway()
+        self.error_handler = get_error_handler()
         self._task_results: dict[UUID, TaskResult] = {}
         self._running_workflows: dict[UUID, asyncio.Task] = {}
 
@@ -308,69 +337,153 @@ class AgentOrchestrator:
         start_time = datetime.utcnow()
         task_results: dict[UUID, TaskResult] = {}
 
-        # 构建任务依赖图
-        dependency_graph = self._build_dependency_graph(workflow.tasks)
+        try:
+            # 构建任务依赖图
+            dependency_graph = self._build_dependency_graph(workflow.tasks)
 
-        # 按依赖顺序执行任务
-        completed_tasks: set[UUID] = set()
-        failed_tasks: set[UUID] = set()
+            # 按依赖顺序执行任务
+            completed_tasks: set[UUID] = set()
+            failed_tasks: set[UUID] = set()
 
-        while len(completed_tasks) + len(failed_tasks) < len(workflow.tasks):
-            # 找出可执行的任务 (依赖已完成)
-            ready_tasks = [
-                task for task in workflow.tasks
-                if task.id not in completed_tasks
-                and task.id not in failed_tasks
-                and all(dep in completed_tasks for dep in task.dependencies)
-            ]
+            while len(completed_tasks) + len(failed_tasks) < len(workflow.tasks):
+                # 找出可执行的任务 (依赖已完成)
+                ready_tasks = [
+                    task for task in workflow.tasks
+                    if task.id not in completed_tasks
+                    and task.id not in failed_tasks
+                    and all(dep in completed_tasks for dep in task.dependencies)
+                ]
 
-            if not ready_tasks:
-                break
-
-            # 并行执行就绪任务
-            task_futures = [
-                self._execute_task_with_guardrails(task, context, workflow)
-                for task in ready_tasks
-            ]
-
-            results = await asyncio.gather(*task_futures, return_exceptions=True)
-
-            for task, result in zip(ready_tasks, results):
-                if isinstance(result, Exception):
-                    task_results[task.id] = TaskResult(
-                        task_id=task.id,
-                        agent_id="",
-                        status=TaskStatus.FAILED,
-                        error=str(result),
+                if not ready_tasks:
+                    # 创建错误对象
+                    error_context = ErrorContext(
+                        component="orchestrator",
+                        operation="execute_workflow",
+                        input_data={
+                            "workflow_name": workflow.name,
+                            "completed_tasks": len(completed_tasks),
+                            "failed_tasks": len(failed_tasks),
+                            "total_tasks": len(workflow.tasks),
+                        },
+                        environment={},
                     )
-                    failed_tasks.add(task.id)
-                else:
-                    task_results[task.id] = result
-                    if result.status == TaskStatus.COMPLETED:
-                        completed_tasks.add(task.id)
-                    else:
+                    
+                    error = create_agent_error(
+                        category=ErrorCategory.CONFIGURATION_ERROR,
+                        code=ErrorCode.CONFIG_INVALID_VALUE,
+                        message=f"工作流执行卡住: {len(completed_tasks)} 已完成, {len(failed_tasks)} 失败, {len(workflow.tasks)} 总数",
+                        context=error_context,
+                        retryable=False,
+                    )
+                    
+                    # 记录错误
+                    for task in workflow.tasks:
+                        if task.id not in completed_tasks and task.id not in failed_tasks:
+                            task_results[task.id] = TaskResult(
+                                task_id=task.id,
+                                agent_id="",
+                                status=TaskStatus.FAILED,
+                                error=f"任务执行被阻塞: {error.message}",
+                            )
+                    break
+
+                # 并行执行就绪任务
+                task_futures = [
+                    self._execute_task_with_guardrails(task, context, workflow)
+                    for task in ready_tasks
+                ]
+
+                results = await asyncio.gather(*task_futures, return_exceptions=True)
+
+                for task, result in zip(ready_tasks, results):
+                    if isinstance(result, Exception):
+                        # 创建错误对象
+                        error_context = ErrorContext(
+                            component="orchestrator",
+                            operation="execute_task",
+                            input_data={
+                                "task_name": task.name,
+                                "task_id": str(task.id),
+                                "exception_type": type(result).__name__,
+                            },
+                            environment={},
+                            stack_trace=traceback.format_exc(),
+                        )
+                        
+                        error = create_agent_error(
+                            category=ErrorCategory.GENERATION_ERROR,
+                            code=ErrorCode.GENERATION_FAILED,
+                            message=f"任务执行失败: {str(result)}",
+                            context=error_context,
+                            retryable=task.retry_count > 0,
+                        )
+                        
+                        task_results[task.id] = TaskResult(
+                            task_id=task.id,
+                            agent_id="",
+                            status=TaskStatus.FAILED,
+                            error=str(error.message),
+                        )
                         failed_tasks.add(task.id)
+                    else:
+                        task_results[task.id] = result
+                        if result.status == TaskStatus.COMPLETED:
+                            completed_tasks.add(task.id)
+                        else:
+                            failed_tasks.add(task.id)
 
-            # 广播进度更新
-            await self.message_bus.publish(AgentMessage(
-                type=MessageType.AGENT_STATUS,
-                sender="orchestrator",
-                recipient=None,
-                payload={
+                # 广播进度更新
+                await self.message_bus.publish(AgentMessage(
+                    type=MessageType.AGENT_STATUS,
+                    sender="orchestrator",
+                    recipient=None,
+                    payload={
+                        "workflow_id": str(workflow.id),
+                        "completed": len(completed_tasks),
+                        "failed": len(failed_tasks),
+                        "total": len(workflow.tasks),
+                    },
+                ))
+
+            # 确定工作流状态
+            if failed_tasks:
+                workflow_status = TaskStatus.FAILED
+            elif len(completed_tasks) == len(workflow.tasks):
+                workflow_status = TaskStatus.COMPLETED
+            else:
+                workflow_status = TaskStatus.CANCELLED
+
+        except Exception as e:
+            # 处理工作流执行异常
+            error_context = ErrorContext(
+                component="orchestrator",
+                operation="execute_workflow",
+                input_data={
+                    "workflow_name": workflow.name,
                     "workflow_id": str(workflow.id),
-                    "completed": len(completed_tasks),
-                    "failed": len(failed_tasks),
-                    "total": len(workflow.tasks),
                 },
-            ))
-
-        # 确定工作流状态
-        if failed_tasks:
+                environment={},
+                stack_trace=traceback.format_exc(),
+            )
+            
+            error = create_agent_error(
+                category=ErrorCategory.GENERATION_ERROR,
+                code=ErrorCode.GENERATION_FAILED,
+                message=f"工作流执行异常: {str(e)}",
+                context=error_context,
+                retryable=False,
+            )
+            
+            # 标记所有任务为失败
+            for task in workflow.tasks:
+                task_results[task.id] = TaskResult(
+                    task_id=task.id,
+                    agent_id="",
+                    status=TaskStatus.FAILED,
+                    error=str(error.message),
+                )
+            
             workflow_status = TaskStatus.FAILED
-        elif len(completed_tasks) == len(workflow.tasks):
-            workflow_status = TaskStatus.COMPLETED
-        else:
-            workflow_status = TaskStatus.CANCELLED
 
         execution_time = int(
             (datetime.utcnow() - start_time).total_seconds() * 1000
@@ -431,11 +544,30 @@ class AgentOrchestrator:
         # 查找合适的Agent
         agent = self._select_agent_for_task(task)
         if not agent:
+            # 创建错误对象
+            error_context = ErrorContext(
+                component="orchestrator",
+                operation="select_agent",
+                input_data={
+                    "task_name": task.name,
+                    "task_type": task.agent_type,
+                },
+                environment={},
+            )
+            
+            error = create_agent_error(
+                category=ErrorCategory.CONFIGURATION_ERROR,
+                code=ErrorCode.CONFIG_MISSING_KEY,
+                message=f"未找到适合任务 {task.name} 的Agent",
+                context=error_context,
+                retryable=False,
+            )
+            
             return TaskResult(
                 task_id=task.id,
                 agent_id="",
                 status=TaskStatus.FAILED,
-                error=f"未找到适合任务 {task.name} 的Agent",
+                error=str(error.message),
             )
 
         try:
@@ -458,38 +590,95 @@ class AgentOrchestrator:
                     )
 
                     if approval_result.status.value != "approved":
+                        error_context = ErrorContext(
+                            component="orchestrator",
+                            operation="task_approval",
+                            input_data={
+                                "task_name": task.name,
+                                "approval_status": approval_result.status.value,
+                                "confidence": result.confidence,
+                            },
+                            environment={},
+                        )
+                        
+                        error = create_agent_error(
+                            category=ErrorCategory.VALIDATION_ERROR,
+                            code=ErrorCode.VALIDATION_FAILED,
+                            message=f"任务未通过审批: {approval_result.status}",
+                            context=error_context,
+                            retryable=True,
+                        )
+                        
                         return TaskResult(
                             task_id=task.id,
-                            agent_id=agent.name,
+                            agent_id=getattr(agent, 'name', 'unknown'),
                             status=TaskStatus.FAILED,
-                            error=f"任务未通过审批: {approval_result.status}",
+                            error=str(error.message),
                             confidence=result.confidence,
                             execution_time_ms=execution_time,
                         )
 
             return TaskResult(
                 task_id=task.id,
-                agent_id=agent.name,
-                status=TaskStatus.COMPLETED if result.success else TaskStatus.FAILED,
-                result=result.data,
-                error=result.error,
-                confidence=result.confidence,
+                agent_id=getattr(agent, 'name', 'unknown'),
+                status=TaskStatus.COMPLETED if getattr(result, 'success', False) else TaskStatus.FAILED,
+                result=getattr(result, 'data', None),
+                error=getattr(result, 'error', None),
+                confidence=getattr(result, 'confidence', 0.0),
                 execution_time_ms=execution_time,
             )
 
         except asyncio.TimeoutError:
+            error_context = ErrorContext(
+                component="orchestrator",
+                operation="task_execution",
+                input_data={
+                    "task_name": task.name,
+                    "timeout_seconds": task.timeout_seconds,
+                },
+                environment={},
+            )
+            
+            error = create_agent_error(
+                category=ErrorCategory.GENERATION_ERROR,
+                code=ErrorCode.GENERATION_TIMEOUT,
+                message="任务执行超时",
+                context=error_context,
+                retryable=True,
+                retry_after=30,  # 30秒后重试
+            )
+            
             return TaskResult(
                 task_id=task.id,
-                agent_id=agent.name,
+                agent_id=getattr(agent, 'name', 'unknown'),
                 status=TaskStatus.FAILED,
-                error="任务执行超时",
+                error=str(error.message),
             )
         except Exception as e:
+            error_context = ErrorContext(
+                component="orchestrator",
+                operation="task_execution",
+                input_data={
+                    "task_name": task.name,
+                    "exception_type": type(e).__name__,
+                },
+                environment={},
+                stack_trace=traceback.format_exc(),
+            )
+            
+            error = create_agent_error(
+                category=ErrorCategory.GENERATION_ERROR,
+                code=ErrorCode.GENERATION_FAILED,
+                message=f"任务执行异常: {str(e)}",
+                context=error_context,
+                retryable=task.retry_count > 0,
+            )
+            
             return TaskResult(
                 task_id=task.id,
-                agent_id=agent.name,
+                agent_id=getattr(agent, 'name', 'unknown'),
                 status=TaskStatus.FAILED,
-                error=str(e),
+                error=str(error.message),
             )
 
     def _select_agent_for_task(self, task: TaskDefinition) -> BaseAgent | None:

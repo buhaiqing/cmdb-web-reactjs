@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import asyncio
+import traceback
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -13,6 +14,13 @@ from typing import Any, Callable, Coroutine
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
+
+from .error_handling import (
+    ErrorCategory,
+    ErrorCode,
+    ErrorContext,
+    create_agent_error,
+)
 
 
 class ApprovalStatus(str, Enum):
@@ -228,16 +236,84 @@ class ApprovalGateway:
         """
         request = self._pending_requests.get(request_id)
         if not request:
-            raise ValueError(f"审批请求不存在: {request_id}")
+            error_context = ErrorContext(
+                component="approval_gateway",
+                operation="approve",
+                input_data={
+                    "request_id": str(request_id),
+                },
+                environment={},
+            )
+            
+            error = create_agent_error(
+                category=ErrorCategory.VALIDATION_ERROR,
+                code=ErrorCode.VALIDATION_FAILED,
+                message=f"审批请求不存在: {request_id}",
+                context=error_context,
+                retryable=False,
+            )
+            raise ValueError(str(error.message))
 
         if request.status != ApprovalStatus.PENDING:
-            raise ValueError(f"审批请求状态错误: {request.status}")
+            error_context = ErrorContext(
+                component="approval_gateway",
+                operation="approve",
+                input_data={
+                    "request_id": str(request_id),
+                    "current_status": request.status.value,
+                },
+                environment={},
+            )
+            
+            error = create_agent_error(
+                category=ErrorCategory.VALIDATION_ERROR,
+                code=ErrorCode.VALIDATION_FAILED,
+                message=f"审批请求状态错误: {request.status}",
+                context=error_context,
+                retryable=False,
+            )
+            raise ValueError(str(error.message))
 
         if approver not in request.approvers:
-            raise ValueError(f"{approver} 不在审批人列表中")
+            error_context = ErrorContext(
+                component="approval_gateway",
+                operation="approve",
+                input_data={
+                    "request_id": str(request_id),
+                    "approver": approver,
+                    "allowed_approvers": request.approvers,
+                },
+                environment={},
+            )
+            
+            error = create_agent_error(
+                category=ErrorCategory.PERMISSION_ERROR,
+                code=ErrorCode.PERMISSION_ACCESS_DENIED,
+                message=f"{approver} 不在审批人列表中",
+                context=error_context,
+                retryable=False,
+            )
+            raise ValueError(str(error.message))
 
         if approver in request.approved_by:
-            raise ValueError(f"{approver} 已审批")
+            error_context = ErrorContext(
+                component="approval_gateway",
+                operation="approve",
+                input_data={
+                    "request_id": str(request_id),
+                    "approver": approver,
+                },
+                environment={},
+            )
+            
+            error = create_agent_error(
+                category=ErrorCategory.VALIDATION_ERROR,
+                code=ErrorCode.VALIDATION_FAILED,
+                message=f"{approver} 已审批",
+                context=error_context,
+                retryable=False,
+            )
+            raise ValueError(str(error.message))
 
         # 记录审批
         request.approved_by.append(approver)
@@ -293,10 +369,43 @@ class ApprovalGateway:
         """
         request = self._pending_requests.get(request_id)
         if not request:
-            raise ValueError(f"审批请求不存在: {request_id}")
+            error_context = ErrorContext(
+                component="approval_gateway",
+                operation="reject",
+                input_data={
+                    "request_id": str(request_id),
+                },
+                environment={},
+            )
+            
+            error = create_agent_error(
+                category=ErrorCategory.VALIDATION_ERROR,
+                code=ErrorCode.VALIDATION_FAILED,
+                message=f"审批请求不存在: {request_id}",
+                context=error_context,
+                retryable=False,
+            )
+            raise ValueError(str(error.message))
 
         if request.status != ApprovalStatus.PENDING:
-            raise ValueError(f"审批请求状态错误: {request.status}")
+            error_context = ErrorContext(
+                component="approval_gateway",
+                operation="reject",
+                input_data={
+                    "request_id": str(request_id),
+                    "current_status": request.status.value,
+                },
+                environment={},
+            )
+            
+            error = create_agent_error(
+                category=ErrorCategory.VALIDATION_ERROR,
+                code=ErrorCode.VALIDATION_FAILED,
+                message=f"审批请求状态错误: {request.status}",
+                context=error_context,
+                retryable=False,
+            )
+            raise ValueError(str(error.message))
 
         request.status = ApprovalStatus.REJECTED
         request.rejected_by.append(approver)
@@ -338,7 +447,23 @@ class ApprovalGateway:
         """
         request = self._pending_requests.get(request_id)
         if not request:
-            raise ValueError(f"审批请求不存在: {request_id}")
+            error_context = ErrorContext(
+                component="approval_gateway",
+                operation="wait_for_approval",
+                input_data={
+                    "request_id": str(request_id),
+                },
+                environment={},
+            )
+            
+            error = create_agent_error(
+                category=ErrorCategory.VALIDATION_ERROR,
+                code=ErrorCode.VALIDATION_FAILED,
+                message=f"审批请求不存在: {request_id}",
+                context=error_context,
+                retryable=False,
+            )
+            raise ValueError(str(error.message))
 
         # 如果已完成，直接返回
         if request.status in (ApprovalStatus.APPROVED, ApprovalStatus.REJECTED):
