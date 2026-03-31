@@ -52,27 +52,13 @@ const menuList: MenuItem[] = [
     ],
   },
   {
-    key: '/user',
-    icon: <UserOutlined />,
-    label: '用户管理',
+    key: '/system',
+    icon: <TeamOutlined />,
+    label: '系统管理',
     children: [
-      { key: '/user/list', label: '用户列表', path: '/user/list' },
-    ],
-  },
-  {
-    key: '/role',
-    icon: <SafetyOutlined />,
-    label: '角色管理',
-    children: [
-      { key: '/role/list', label: '角色列表', path: '/role/list' },
-    ],
-  },
-  {
-    key: '/audit',
-    icon: <AuditOutlined />,
-    label: '审计日志',
-    children: [
-      { key: '/audit/logs', label: '审计日志', path: '/audit/logs' },
+      { key: '/system/user', label: '用户列表', path: '/system/user' },
+      { key: '/system/role', label: '角色列表', path: '/system/role' },
+      { key: '/system/audit', label: '审计日志', path: '/system/audit' },
     ],
   },
 ]
