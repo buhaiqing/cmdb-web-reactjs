@@ -54,7 +54,7 @@ cmdb-web/
 
 ## CONVENTIONS
 
-### Frontend (React 19 + Next.js 15)
+### Frontend (React 18 + Next.js 14)
 - **Components**: Use React Server Components by default, add `'use client'` directive for interactivity
 - **State Management**: Zustand stores with `persist` middleware for global state
 - **Styling**: CSS Modules (`.module.css`) + Ant Design Design Tokens
