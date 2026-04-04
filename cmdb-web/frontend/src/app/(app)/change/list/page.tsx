@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Table, Card, Tag, Space, Button } from 'antd'
+import { Table, Card, Tag, Space, Button, Select } from 'antd'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import type { ColumnsType } from 'antd/es/table'
@@ -20,6 +20,14 @@ interface Change {
 
 export default function ChangeListPage() {
   const [loading] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
+
+  const statusOptions = [
+    { value: 'pending', label: '待审批' },
+    { value: 'approved', label: '已批准' },
+    { value: 'rejected', label: '已拒绝' },
+    { value: 'completed', label: '已完成' },
+  ]
 
   const columns: ColumnsType<Change> = [
     {
@@ -97,11 +105,24 @@ export default function ChangeListPage() {
     { id: '3', ciName: 'K8S-集群-01', changeType: '扩缩容', description: '扩容2个节点', operator: 'admin', status: 'completed', createdAt: '2024-01-14 16:45', approvedBy: 'admin', approvedAt: '2024-01-14 17:00' },
   ]
 
+  const filteredData = statusFilter
+    ? mockData.filter(item => item.status === statusFilter)
+    : mockData
+
   return (
     <div className="page-change-list" data-testid="page-change-list">
       <div className="page-header">
         <h1 className="page-title">变更记录</h1>
         <Space>
+          <Select
+            placeholder="筛选状态"
+            allowClear
+            options={statusOptions}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            data-testid="select-change-status-filter"
+            style={{ width: 120 }}
+          />
           <Button icon={<ReloadOutlined />} data-testid="button-change-refresh">
             刷新
           </Button>
@@ -111,13 +132,13 @@ export default function ChangeListPage() {
       <Card data-testid="card-change-table">
         <Table
           columns={columns}
-          dataSource={mockData}
+          dataSource={filteredData}
           rowKey="id"
           loading={loading}
           pagination={{
             current: 1,
             pageSize: 20,
-            total: 3,
+            total: filteredData.length,
             showSizeChanger: true,
             showTotal: (total) => `共 ${total} 条`,
           }}

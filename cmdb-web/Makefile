@@ -60,7 +60,7 @@ test-e2e-mock:
 		exit 1; \
 	fi && \
 	echo "运行 E2E 测试（使用路由拦截）..." && \
-	cd frontend && npm run test:e2e && \
+	cd frontend && npm run test:e2e -- --max-failures=3 && \
 	echo "清理进程..." && \
 	kill $$FRONTEND_PID 2>/dev/null || true && \
 	lsof -ti:3001 | xargs kill -9 2>/dev/null || true && \
@@ -68,11 +68,11 @@ test-e2e-mock:
 
 # 运行 E2E 测试 (UI 模式)
 test-e2e-ui:
-	cd frontend && npm run test:e2e:ui
+	cd frontend && npm run test:e2e:ui -- --max-failures=3
 
 # 运行 E2E 测试 (有头模式)
 test-e2e-headed:
-	cd frontend && npm run test:e2e:headed
+	cd frontend && npm run test:e2e:headed -- --max-failures=3
 
 # 查看测试报告
 test-report:
@@ -159,7 +159,7 @@ test-full:
 		exit 1; \
 	fi && \
 	echo "启动前端开发服务器..." && \
-	cd frontend && npm run dev -- -p 3001 & \
+	cd frontend && NEXT_PUBLIC_API_URL=http://localhost:8000/api npm run dev -- -p 3001 & \
 	FRONTEND_PID=$$! && \
 	sleep 5 && \
 	echo "检查前端服务启动状态..." && \
@@ -180,8 +180,8 @@ test-full:
 		lsof -ti:9323 | xargs kill -9 2>/dev/null || true; \
 		exit 1; \
 	fi && \
-	echo "运行前端 E2E 测试..." && \
-	cd frontend && npm run test:e2e && \
+	echo "运行前端 E2E 测试（真实后端模式）..." && \
+	cd frontend && TEST_MODE=full npm run test:e2e -- --max-failures=3 && \
 	echo "清理进程..." && \
 	kill $$BACKEND_PID 2>/dev/null || true && \
 	kill $$FRONTEND_PID 2>/dev/null || true && \

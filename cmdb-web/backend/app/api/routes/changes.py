@@ -200,3 +200,44 @@ async def delete_change(
     await db.delete(change)
     await db.commit()
     return BaseResponse(message="变更删除成功")
+
+
+@router.post("/{change_id}/approve", response_model=BaseResponse)
+async def approve_change(
+    change_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    result = await db.execute(select(Change).where(Change.id == change_id))
+    change = result.scalar_one_or_none()
+    if not change:
+        raise HTTPException(status_code=404, detail="变更不存在")
+
+    if change.status != "pending":
+        raise HTTPException(status_code=400, detail="只能批准待审批的变更")
+
+    change.status = "approved"
+    change.actual_start = datetime.now(timezone.utc)
+    await db.commit()
+
+    return BaseResponse(message="变更已批准", data={"id": change.id, "status": "approved"})
+
+
+@router.post("/{change_id}/reject", response_model=BaseResponse)
+async def reject_change(
+    change_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    result = await db.execute(select(Change).where(Change.id == change_id))
+    change = result.scalar_one_or_none()
+    if not change:
+        raise HTTPException(status_code=404, detail="变更不存在")
+
+    if change.status != "pending":
+        raise HTTPException(status_code=400, detail="只能拒绝待审批的变更")
+
+    change.status = "rejected"
+    await db.commit()
+
+    return BaseResponse(message="变更已拒绝", data={"id": change.id, "status": "rejected"})

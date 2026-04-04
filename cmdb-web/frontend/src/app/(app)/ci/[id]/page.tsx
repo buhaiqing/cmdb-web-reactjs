@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Card, Descriptions, Tag, Button, Space, Spin, Row, Col, Table } from 'antd'
+import { Card, Descriptions, Tag, Button, Space, Spin, Row, Col, Table, Modal } from 'antd'
 import { EditOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import type { ColumnsType } from 'antd/es/table'
@@ -20,12 +20,16 @@ export default function CIDetailPage() {
   const router = useRouter()
   const { currentCI, isLoading, fetchCIDetail } = useCIStore()
   const [relations, setRelations] = useState<Relation[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   const ciId = params.id as string
 
   useEffect(() => {
     if (ciId) {
-      fetchCIDetail(ciId)
+      setError(null)
+      fetchCIDetail(ciId).catch(() => {
+        setError('配置项不存在或已被删除')
+      })
       setRelations([
         { id: '1', targetCI: 'DB-主库-01', relationType: '依赖', description: '数据库连接' },
         { id: '2', targetCI: 'APP-订单服务', relationType: '连接', description: '上游服务' },
@@ -33,13 +37,20 @@ export default function CIDetailPage() {
     }
   }, [ciId, fetchCIDetail])
 
-  const handleDelete = async () => {
-    if (confirm('确定要删除此配置项吗？')) {
-      const success = await useCIStore.getState().deleteCI(ciId)
-      if (success) {
-        router.push('/ci/list')
-      }
-    }
+  const handleDelete = () => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除此配置项吗？此操作不可恢复。',
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      async onOk() {
+        const success = await useCIStore.getState().deleteCI(ciId)
+        if (success) {
+          router.push('/ci/list')
+        }
+      },
+    })
   }
 
   const relationColumns: ColumnsType<Relation> = [
@@ -63,23 +74,53 @@ export default function CIDetailPage() {
     },
   ]
 
-  const mockCI: CI = {
-    id: ciId || '1',
-    name: 'DB-主库-01',
-    type: 'database',
-    status: 'running',
-    ip: '10.0.1.101',
-    cpu: '16核',
-    memory: '64GB',
-    disk: '500GB SSD',
-    os: 'CentOS 7.9',
-    project: '订单系统',
-    environment: 'production',
-    createdAt: '2024-01-10 10:00:00',
-    updatedAt: '2024-01-15 10:00:00',
+  const ci = currentCI
+
+  if (error) {
+    return (
+      <div className="page-ci-detail" data-testid="page-ci-detail">
+        <div className="page-header">
+          <Space>
+            <Link href="/ci/list">
+              <Button icon={<ArrowLeftOutlined />} data-testid="button-ci-back">
+                返回
+              </Button>
+            </Link>
+            <h1 className="page-title">配置项详情</h1>
+          </Space>
+        </div>
+        <Card>
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <p style={{ color: '#ff4d4f', fontSize: '16px' }}>{error}</p>
+          </div>
+        </Card>
+      </div>
+    )
   }
 
-  const ci = currentCI || mockCI
+  if (!ci) {
+    return (
+      <div className="page-ci-detail" data-testid="page-ci-detail">
+        <div className="page-header">
+          <Space>
+            <Link href="/ci/list">
+              <Button icon={<ArrowLeftOutlined />} data-testid="button-ci-back">
+                返回
+              </Button>
+            </Link>
+            <h1 className="page-title">配置项详情</h1>
+          </Space>
+        </div>
+        <Spin spinning={isLoading} tip="加载中...">
+          <Card>
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              加载配置项信息...
+            </div>
+          </Card>
+        </Spin>
+      </div>
+    )
+  }
 
   const ciStatusOptions: Record<string, { color: string; label: string }> = {
     running: { color: 'green', label: '运行中' },
@@ -124,16 +165,16 @@ export default function CIDetailPage() {
           <Col span={16}>
             <Card title="基本信息" data-testid="card-ci-basic">
               <Descriptions column={2} bordered>
-                <Descriptions.Item label="名称">{ci.name}</Descriptions.Item>
+                <Descriptions.Item label="名称"><span data-testid="ci-detail-name">{ci.name}</span></Descriptions.Item>
                 <Descriptions.Item label="类型">
-                  <Tag>{ciTypeOptions[ci.type] || ci.type}</Tag>
+                  <span data-testid="ci-detail-type"><Tag>{ciTypeOptions[ci.type] || ci.type}</Tag></span>
                 </Descriptions.Item>
                 <Descriptions.Item label="状态">
-                  <Tag color={ciStatusOptions[ci.status]?.color}>
+                  <span data-testid="ci-detail-status"><Tag color={ciStatusOptions[ci.status]?.color}>
                     {ciStatusOptions[ci.status]?.label || ci.status}
-                  </Tag>
+                  </Tag></span>
                 </Descriptions.Item>
-                <Descriptions.Item label="IP地址">{ci.ip || '-'}</Descriptions.Item>
+                <Descriptions.Item label="IP地址"><span data-testid="ci-detail-ip">{ci.ip || '-'}</span></Descriptions.Item>
                 <Descriptions.Item label="CPU">{ci.cpu || '-'}</Descriptions.Item>
                 <Descriptions.Item label="内存">{ci.memory || '-'}</Descriptions.Item>
                 <Descriptions.Item label="磁盘">{ci.disk || '-'}</Descriptions.Item>

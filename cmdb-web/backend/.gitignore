@@ -8,3 +8,5 @@ build/
 htmlcov/
 .coverage
 .pytest_cache/
+pgdata/
+.pgbox_pgdata.lock
