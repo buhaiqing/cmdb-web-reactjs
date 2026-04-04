@@ -50,6 +50,7 @@ cmdb-web/
 | Add React hook | `src/hooks/` | Custom hooks for shared logic |
 | Mock API for dev | API route handlers in `src/app/api/` | Next.js API routes |
 | Add backend test | `backend/tests/` | Use pytest with in-memory SQLite |
+| Add frontend E2E test | `frontend/tests/e2e/` | Use Playwright with Page Object Model |
 
 ## CONVENTIONS
 
@@ -87,6 +88,13 @@ npm run build            # Build for production
 npm run lint             # ESLint check
 npm run typecheck        # TypeScript type check
 
+# Frontend E2E tests
+make test-e2e-mock        # Run E2E tests with API mocking
+make test-e2e-ui          # Run E2E tests in UI mode
+make test-e2e-headed      # Run E2E tests with visible browser
+make test-full            # Run full test suite
+make test-report          # View test reports
+
 # Backend development
 cd cmdb-web/backend
 python -m venv venv && source venv/bin/activate
@@ -101,5 +109,5 @@ pytest --cov=app --cov-report=html  # Run tests with coverage
 - **State**: Zustand stores persist to localStorage via `persist` middleware
 - **UI Library**: Ant Design 5.x with ConfigProvider for theme customization
 - **API Calls**: Use `apiRequest` utility in `lib/api.ts` for consistent error handling
-- **Testing**: Frontend uses Playwright E2E tests; backend uses pytest with isolated SQLite
+- **Testing**: Frontend uses Playwright E2E tests with Page Object Model; backend uses pytest with isolated SQLite. See [测试最佳实践](docs/test-best-practices.md) for detailed testing guidelines including Fail-Fast mode, test isolation, and API mocking strategies.
 - **CI**: Test artifacts should be gitignored; use `.gitignore` rules for generated files
