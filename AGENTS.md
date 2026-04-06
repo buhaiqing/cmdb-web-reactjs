@@ -6,9 +6,9 @@
 
 ## OVERVIEW
 
-CMDB (Configuration Management Database) web application with React 19 frontend and FastAPI backend. Manages configuration items, change requests, and audit logs for IT infrastructure.
+CMDB (Configuration Management Database) web application with React 19 frontend and Go backend. Manages configuration items, change requests, and audit logs for IT infrastructure.
 
-**Stack**: React 19 + Next.js 15 (App Router) + TypeScript + Zustand + Ant Design 5.x (frontend) | Python + FastAPI + SQLAlchemy (backend)
+**Stack**: React 19 + Next.js 15 (App Router) + TypeScript + Zustand + Ant Design 5.x (frontend) | Go + Gin + GORM (backend)
 
 ## STRUCTURE
 
@@ -34,8 +34,18 @@ cmdb-web/
 │   ├── lib/              # Utility functions
 │   ├── api/              # API client modules
 │   └── types/            # TypeScript type definitions
-├── backend/              # FastAPI REST API
-│   └── app/             # Routes, services, models, schemas
+├── backend-go/           # Go REST API
+│   ├── cmd/             # Command line entry point
+│   ├── internal/        # Internal packages
+│   │   ├── config/      # Configuration management
+│   │   ├── database/    # Database operations
+│   │   ├── middleware/  # Middleware
+│   │   ├── models/      # Data models
+│   │   ├── routes/      # API routes
+│   │   ├── schemas/     # Data structures
+│   │   ├── security/    # Security related
+│   │   └── utils/       # Utility functions
+│   └── tests/           # Test code
 └── docs/                # Documentation
 ```
 
@@ -44,12 +54,12 @@ cmdb-web/
 | Task | Location | Notes |
 |------|----------|-------|
 | Add new page/view | `src/app/(main)/` | Use React + Ant Design, follow App Router conventions |
-| Add new API endpoint | `src/api/` + `backend/app/api/routes/` | Follow existing patterns |
-| Modify CI management | `src/app/(main)/ci/` + `backend/app/api/routes/ci.py` | Core domain logic |
+| Add new API endpoint | `src/api/` + `backend-go/internal/routes/` | Follow existing patterns |
+| Modify CI management | `src/app/(main)/ci/` + `backend-go/internal/routes/ci.go` | Core domain logic |
 | Add Zustand store | `src/stores/` | Use create() with persist middleware |
 | Add React hook | `src/hooks/` | Custom hooks for shared logic |
 | Mock API for dev | API route handlers in `src/app/api/` | Next.js API routes |
-| Add backend test | `backend/tests/` | Use pytest with in-memory SQLite |
+| Add backend test | `backend-go/tests/` | Use Go testing with in-memory SQLite |
 | Add frontend E2E test | `frontend/tests/e2e/` | Use Playwright with Page Object Model |
 
 ## CONVENTIONS
@@ -63,11 +73,11 @@ cmdb-web/
 - **Auth**: NextAuth.js with JWT tokens
 
 ### Backend
-- **Routes**: FastAPI routers under `/api` prefix
-- **Schemas**: Pydantic models with `model_config = ConfigDict(from_attributes=True)`
-- **Services**: Business logic in `app/services/`, not in routes
-- **Models**: SQLAlchemy with `Base` class and `TimestampMixin`
-- **Responses**: Use `BaseResponse` and `PaginatedResponse` schemas
+- **Routes**: Gin routers under `/api` prefix
+- **Schemas**: Go structs with validation tags
+- **Services**: Business logic in `internal/routes/`, not in handlers
+- **Models**: GORM models with struct definitions and automatic migrations
+- **Responses**: Use `BaseResponse` struct for consistent response format
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
@@ -96,11 +106,14 @@ make test-full            # Run full test suite
 make test-report          # View test reports
 
 # Backend development
-cd cmdb-web/backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload  # Start dev server
-pytest --cov=app --cov-report=html  # Run tests with coverage
+cd cmdb-web/backend-go
+go mod download
+# Start dev server
+go run cmd/main.go
+# Run tests
+go test ./...
+# Build production binary
+go build -o cmdb-backend cmd/main.go
 ```
 
 ## NOTES
@@ -109,5 +122,5 @@ pytest --cov=app --cov-report=html  # Run tests with coverage
 - **State**: Zustand stores persist to localStorage via `persist` middleware
 - **UI Library**: Ant Design 5.x with ConfigProvider for theme customization
 - **API Calls**: Use `apiRequest` utility in `lib/api.ts` for consistent error handling
-- **Testing**: Frontend uses Playwright E2E tests with Page Object Model; backend uses pytest with isolated SQLite. See [测试最佳实践](docs/test-best-practices.md) for detailed testing guidelines including Fail-Fast mode, test isolation, and API mocking strategies.
+- **Testing**: Frontend uses Playwright E2E tests with Page Object Model; backend uses Go testing with isolated SQLite. See [测试最佳实践](docs/test-best-practices.md) for detailed testing guidelines including Fail-Fast mode, test isolation, and API mocking strategies.
 - **CI**: Test artifacts should be gitignored; use `.gitignore` rules for generated files

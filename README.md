@@ -15,7 +15,7 @@
 - **开发效率**: AI 生成代码速度比人工编码提升 5-10 倍
 - **代码质量**: 生成代码符合最佳实践，包含完整的错误处理和类型定义
 - **测试覆盖率**: AI 生成的测试用例覆盖所有核心功能，测试通过率 100%
-- **技术栈适配**: 支持现代技术栈（React 18 + Next.js 14 + FastAPI）
+- **技术栈适配**: 支持现代技术栈（React 18 + Next.js 14 + Gin + Go）
 - **可维护性**: 生成代码结构清晰，注释完善，易于维护和扩展
 
 ---
@@ -38,11 +38,11 @@
 - **测试**: Playwright (E2E)
 
 ### 后端
-- **框架**: FastAPI
-- **语言**: Python
-- **ORM**: SQLAlchemy
-- **数据验证**: Pydantic
-- **测试**: pytest
+- **框架**: Gin
+- **语言**: Go
+- **ORM**: GORM (SQLite)
+- **数据验证**: 内置验证
+- **测试**: Go testing
 
 ## 项目结构
 
@@ -68,12 +68,18 @@ cmdb-web/
 │   ├── lib/              # 工具函数
 │   ├── api/              # API 客户端模块
 │   └── types/            # TypeScript 类型定义
-├── backend/              # FastAPI 后端服务
-│   └── app/             # 后端应用代码
-│       ├── api/         # API 路由
-│       ├── services/    # 业务逻辑
-│       ├── models/      # 数据模型
-│       └── schemas/     # Pydantic 模型
+├── backend-go/           # Go 后端服务
+│   ├── cmd/             # 命令行入口
+│   ├── internal/        # 内部包
+│   │   ├── config/      # 配置管理
+│   │   ├── database/    # 数据库操作
+│   │   ├── middleware/  # 中间件
+│   │   ├── models/      # 数据模型
+│   │   ├── routes/      # API 路由
+│   │   ├── schemas/     # 数据结构
+│   │   ├── security/    # 安全相关
+│   │   └── utils/       # 工具函数
+│   └── tests/           # 测试代码
 └── docs/                # 项目文档
 ```
 
@@ -147,19 +153,19 @@ npm run test:e2e
 
 ```bash
 # 进入后端目录
-cd cmdb-web/backend
-
-# 创建并激活虚拟环境
-python -m venv venv && source venv/bin/activate
+cd cmdb-web/backend-go
 
 # 安装依赖
-pip install -r requirements.txt
+go mod download
 
 # 启动开发服务器 (http://localhost:8000)
-uvicorn app.main:app --reload
+go run cmd/main.go
 
-# 运行测试（带覆盖率报告）
-pytest --cov=app --cov-report=html
+# 运行测试
+go test ./...
+
+# 构建生产版本
+go build -o cmdb-backend cmd/main.go
 ```
 
 ## 核心功能
@@ -188,11 +194,11 @@ pytest --cov=app --cov-report=html
 
 ### 后端规范
 
-- **路由**: FastAPI 路由器统一使用 `/api` 前缀
-- **模型**: Pydantic 模型使用 `model_config = ConfigDict(from_attributes=True)`
-- **业务逻辑**: 放在 `app/services/` 中，路由层仅处理请求响应
-- **数据模型**: SQLAlchemy 模型继承 `Base` 类和 `TimestampMixin`
-- **响应格式**: 使用 `BaseResponse` 和 `PaginatedResponse` 统一响应格式
+- **路由**: Gin 路由器统一使用 `/api` 前缀
+- **模型**: GORM 模型使用结构体定义，支持自动迁移
+- **业务逻辑**: 放在 `internal/routes/` 中，路由层仅处理请求响应
+- **数据模型**: GORM 模型使用结构体定义，支持自动迁移
+- **响应格式**: 使用统一的 `BaseResponse` 结构体统一响应格式
 
 ## 相关文档
 
