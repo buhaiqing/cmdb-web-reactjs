@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { isMockMode } from './setup/test-config'
+import { isMockMode, isFullMode, setupFallbackMocks } from './setup/test-config'
 import { LoginPage } from './pages/LoginPage'
 import { CIDetailPage } from './pages/CIDetailPage'
 
@@ -26,13 +26,60 @@ test.describe('配置项详情测试', () => {
     updatedAt: '2024-01-01 10:00:00',
   }
 
+  // Full 模式下通过 API 创建的测试 CI
+  let fullModeTestCI: { id: string; name: string } | null = null
+
+  // 获取当前模式的测试 CI 数据
+  const getTestCI = () => {
+    if (isFullMode() && fullModeTestCI) {
+      return fullModeTestCI
+    }
+    return mockCI
+  }
+
   test.beforeEach(async ({ page }) => {
-    // 只在 mock 模式下设置拦截器
-    if (!isMockMode()) {
-      loginPage = new LoginPage(page)
-      ciDetailPage = new CIDetailPage(page)
+    loginPage = new LoginPage(page)
+    ciDetailPage = new CIDetailPage(page)
+
+    // Full 模式：登录 + 设置 fallback mocks + 创建测试 CI
+    if (isFullMode()) {
+      await setupFallbackMocks(page)
+      await loginPage.goto()
+      await loginPage.login('admin', 'admin123')
+      await loginPage.waitForLoginSuccess()
+
+      // 通过真实 API 创建一个临时 CI 用于详情测试
+      const token = await page.evaluate(() => {
+        const stored = localStorage.getItem('cmdb-user-storage')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          return parsed.state?.token
+        }
+        return null
+      })
+
+      const ciName = '详情测试服务器-' + Date.now()
+      const apiResponse = await page.request.post('http://127.0.0.1:8000/api/ci', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        data: {
+          name: ciName,
+          type: 'server',
+          ip: '192.168.1.100',
+          project: '测试项目',
+          environment: 'production',
+        },
+      })
+      const apiData = await apiResponse.json()
+      fullModeTestCI = { id: apiData.data.id, name: ciName }
+      console.log(`Full 模式：创建测试 CI, id=${fullModeTestCI.id}`)
       return
     }
+
+    // Mock 模式：设置拦截器
+    if (!isMockMode()) return
 
     await page.route('**/api/**', async (route) => {
       const url = route.request().url()
@@ -100,25 +147,32 @@ test.describe('配置项详情测试', () => {
   })
 
   test('CI-006: 查看配置项详细信息', async () => {
-    await ciDetailPage.goto(mockCI.id)
+    const testCI = getTestCI()
+    await ciDetailPage.goto(testCI.id)
     await ciDetailPage.expectDetailVisible()
   })
 
   test('CI-007: 验证基本信息显示', async ({ page }) => {
-    await ciDetailPage.goto(mockCI.id)
+    const testCI = getTestCI()
+    await ciDetailPage.goto(testCI.id)
     await ciDetailPage.expectDetailVisible()
 
-    // 验证各字段正确显示
-    await ciDetailPage.expectCIDataVisible({
-      name: mockCI.name,
-      type: mockCI.typeLabel,
-      ip: mockCI.ip,
-      status: mockCI.statusLabel
-    })
+    // 验证名称显示（full 模式下使用实际创建的名称）
+    if (isFullMode()) {
+      await ciDetailPage.expectCIDataVisible({ name: testCI.name })
+    } else {
+      await ciDetailPage.expectCIDataVisible({
+        name: testCI.name,
+        type: testCI.typeLabel,
+        ip: testCI.ip,
+        status: testCI.statusLabel
+      })
+    }
   })
 
   test('CI-008: 验证编辑和删除按钮可见', async ({ page }) => {
-    await ciDetailPage.goto(mockCI.id)
+    const testCI = getTestCI()
+    await ciDetailPage.goto(testCI.id)
     await ciDetailPage.expectDetailVisible()
 
     // 验证编辑按钮可见

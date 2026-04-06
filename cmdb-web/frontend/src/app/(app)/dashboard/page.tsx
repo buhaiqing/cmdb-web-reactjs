@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { Row, Col, Card, Statistic, Table, Tag, Space } from 'antd'
 import {
   DesktopOutlined,
@@ -33,35 +33,8 @@ export default function DashboardPage() {
   })
   const [recentChanges, setRecentChanges] = useState<RecentChange[]>([])
 
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
-
-  const fetchDashboardData = async () => {
-    setLoading(true)
-    try {
-      const [statsRes, changesRes] = await Promise.all([
-        api.get('/dashboard/stats'),
-        api.get('/changes/recent'),
-      ])
-      setStats(statsRes.data.data || { server: 128, database: 45, middleware: 32, container: 156, changePending: 7 })
-      setRecentChanges(changesRes.data.data || [
-        { id: '1', ciName: 'DB-主库-01', changeType: '更新配置', operator: 'admin', createdAt: '2024-01-15 10:30', status: 'pending' },
-        { id: '2', ciName: 'APP-订单服务', changeType: '重启服务', operator: 'admin', createdAt: '2024-01-15 09:15', status: 'approved' },
-        { id: '3', ciName: 'K8S-集群-01', changeType: '扩缩容', operator: 'admin', createdAt: '2024-01-14 16:45', status: 'completed' },
-      ])
-    } catch {
-      setStats({ server: 128, database: 45, middleware: 32, container: 156, changePending: 7 })
-      setRecentChanges([
-        { id: '1', ciName: 'DB-主库-01', changeType: '更新配置', operator: 'admin', createdAt: '2024-01-15 10:30', status: 'pending' },
-        { id: '2', ciName: 'APP-订单服务', changeType: '重启服务', operator: 'admin', createdAt: '2024-01-15 09:15', status: 'approved' },
-        { id: '3', ciName: 'K8S-集群-01', changeType: '扩缩容', operator: 'admin', createdAt: '2024-01-14 16:45', status: 'completed' },
-      ])
-    }
-    setLoading(false)
-  }
-
-  const columns: ColumnsType<RecentChange> = [
+  // 表格列配置使用 useMemo 缓存
+  const columns = useMemo<ColumnsType<RecentChange>>(() => [
     {
       title: '配置项',
       dataIndex: 'ciName',
@@ -106,7 +79,37 @@ export default function DashboardPage() {
         return <Tag color={colorMap[status]} data-testid={`cell-change-status-${status}`}>{labelMap[status]}</Tag>
       },
     },
-  ]
+  ], [])
+
+  // 数据获取函数使用 useCallback 缓存
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [statsRes, changesRes] = await Promise.all([
+        api.get('/dashboard/stats'),
+        api.get('/changes/recent'),
+      ])
+      setStats(statsRes.data.data || { server: 128, database: 45, middleware: 32, container: 156, changePending: 7 })
+      setRecentChanges(changesRes.data.data || [
+        { id: '1', ciName: 'DB-主库-01', changeType: '更新配置', operator: 'admin', createdAt: '2024-01-15 10:30', status: 'pending' },
+        { id: '2', ciName: 'APP-订单服务', changeType: '重启服务', operator: 'admin', createdAt: '2024-01-15 09:15', status: 'approved' },
+        { id: '3', ciName: 'K8S-集群-01', changeType: '扩缩容', operator: 'admin', createdAt: '2024-01-14 16:45', status: 'completed' },
+      ])
+    } catch {
+      setStats({ server: 128, database: 45, middleware: 32, container: 156, changePending: 7 })
+      setRecentChanges([
+        { id: '1', ciName: 'DB-主库-01', changeType: '更新配置', operator: 'admin', createdAt: '2024-01-15 10:30', status: 'pending' },
+        { id: '2', ciName: 'APP-订单服务', changeType: '重启服务', operator: 'admin', createdAt: '2024-01-15 09:15', status: 'approved' },
+        { id: '3', ciName: 'K8S-集群-01', changeType: '扩缩容', operator: 'admin', createdAt: '2024-01-14 16:45', status: 'completed' },
+      ])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [fetchDashboardData])
 
   return (
     <div className="page-dashboard" data-testid="page-dashboard">

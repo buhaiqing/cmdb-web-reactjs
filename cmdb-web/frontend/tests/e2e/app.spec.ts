@@ -7,7 +7,7 @@ import { CIDetailPage } from './pages/CIDetailPage'
 import { CIEditPage } from './pages/CIEditPage'
 import { ChangeRequestPage } from './pages/ChangeRequestPage'
 import { AppLayout } from './pages/AppLayout'
-import { isMockMode } from './setup/test-config'
+import { isMockMode, isFullMode, setupFallbackMocks } from './setup/test-config'
 
 test.describe('CMDB 端到端测试', () => {
   let loginPage: LoginPage
@@ -22,7 +22,10 @@ test.describe('CMDB 端到端测试', () => {
   test.beforeEach(async ({ page }) => {
     // 只在 mock 模式下设置拦截器
     if (!isMockMode()) {
-      // full 模式：初始化页面对象
+      // full 模式：设置 fallback mocks + 初始化页面对象
+      if (isFullMode()) {
+        await setupFallbackMocks(page)
+      }
       loginPage = new LoginPage(page)
       dashboardPage = new DashboardPage(page)
       ciListPage = new CIListPage(page)
@@ -567,6 +570,9 @@ test.describe('CMDB 端到端测试', () => {
   })
 
   test('权限控制测试 - 使用普通用户登录', async ({ page }) => {
+    // Full 模式下 Go 后端没有普通用户账号，跳过此测试
+    test.skip(isFullMode(), 'Full 模式下无普通用户账号，跳过权限控制测试')
+
     // 只在 mock 模式下设置普通用户 mock
     if (isMockMode()) {
       await page.route('**/api/auth/login', async (route) => {

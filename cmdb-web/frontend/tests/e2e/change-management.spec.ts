@@ -1,152 +1,28 @@
 import { test, expect } from '@playwright/test'
 import { LoginPage } from './pages/LoginPage'
 import { ChangeRequestPage } from './pages/ChangeRequestPage'
-import { isMockMode } from './setup/test-config'
+import { isMockMode, isFullMode, setupFallbackMocks } from './setup/test-config'
+import { setupMockRoutes } from './setup/mock-routes'
+import { generateTestData, generateTestId } from './setup/test-data'
 
 test.describe('变更管理测试', () => {
   let loginPage: LoginPage
   let changeRequestPage: ChangeRequestPage
-
-  const mockChange = {
-    id: 'change-001',
-    title: '测试变更请求',
-    ciId: 'ci-001',
-    ciName: '测试服务器-01',
-    changeType: 'update',
-    changeTypeLabel: '更新配置',
-    description: '这是一个测试变更请求的描述',
-    status: 'pending',
-    statusLabel: '待审批',
-    createdBy: 'admin',
-    createdAt: '2024-01-01 10:00:00',
-  }
+  let testId: string
 
   test.beforeEach(async ({ page }) => {
+    // 生成唯一的测试 ID
+    testId = generateTestId('change')
+    console.log(`开始测试: ${testId}`)
+    
     // 只在 mock 模式下设置拦截器
-    if (!isMockMode()) {
-      loginPage = new LoginPage(page)
-      changeRequestPage = new ChangeRequestPage(page)
-      await loginPage.goto()
-      await loginPage.login('admin', 'admin123')
-      await loginPage.waitForLoginSuccess()
-      return
+    if (isMockMode()) {
+      // 使用统一的 Mock 路由配置
+      await setupMockRoutes(page)
+    } else if (isFullMode()) {
+      // 在 full 模式下设置 fallback mocks
+      await setupFallbackMocks(page)
     }
-
-    // 拦截认证相关的 API 请求（使用 mock 数据）
-    await page.route('**/api/auth/**', async (route) => {
-      const url = route.request().url()
-
-      if (url.includes('/api/auth/login')) {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            data: {
-              token: 'mock-jwt-token',
-              user: {
-                id: '1',
-                username: 'admin',
-                email: 'admin@example.com',
-                role: 'admin',
-                permissions: ['*'],
-              },
-            },
-          }),
-        })
-        return
-      }
-
-      if (url.includes('/api/auth/me')) {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            data: {
-              id: '1',
-              username: 'admin',
-              email: 'admin@example.com',
-              role: 'admin',
-              permissions: ['*'],
-            },
-          }),
-        })
-        return
-      }
-
-      await route.continue()
-    })
-
-    // 拦截创建变更 API（必须在列表拦截器之前，更具体的 URL 优先）
-    await page.route('**/api/changes', async (route) => {
-      if (route.request().method() === 'POST') {
-        const requestBody = JSON.parse(route.request().postData() || '{}')
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            data: {
-              id: 'new-change-' + Date.now(),
-              ...requestBody,
-              status: 'pending',
-              createdAt: new Date().toISOString(),
-            },
-          }),
-        })
-        return
-      }
-      // GET 请求继续到下一个拦截器
-      await route.fallback()
-    })
-
-    // 拦截变更列表 API，返回 mock 数据
-    await page.route(/.*\/api\/changes(\?.*)?$/, async (route) => {
-      if (route.request().method() !== 'GET') {
-        await route.fallback()
-        return
-      }
-      const url = route.request().url()
-      const urlObj = new URL(url)
-      const statusFilter = urlObj.searchParams.get('status')
-
-      const items = [
-        { ...mockChange, status: 'pending' },
-        { ...mockChange, id: 'change-002', title: '另一个变更', status: 'approved' },
-        { ...mockChange, id: 'change-003', title: '已拒绝的变更', status: 'rejected' },
-      ].filter(item => !statusFilter || item.status === statusFilter)
-
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: { items, total: items.length },
-        }),
-      })
-    })
-
-    // 拦截变更详情 API，返回 mock 数据
-    await page.route(/\/api\/changes\/[^/]+$/, async (route) => {
-      const url = route.request().url()
-      const match = url.match(/\/api\/changes\/([^/]+)$/)
-      const id = match ? match[1] : 'unknown'
-
-      // 根据ID返回不同状态（用于状态流转测试）
-      let status = 'pending'
-      if (id === 'change-approved') status = 'approved'
-      if (id === 'change-rejected') status = 'rejected'
-
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: { ...mockChange, id, status },
-        }),
-      })
-    })
 
     loginPage = new LoginPage(page)
     changeRequestPage = new ChangeRequestPage(page)
@@ -154,6 +30,10 @@ test.describe('变更管理测试', () => {
     await loginPage.goto()
     await loginPage.login('admin', 'admin123')
     await loginPage.waitForLoginSuccess()
+  })
+
+  test.afterEach(() => {
+    console.log(`测试完成: ${testId}`)
   })
 
   test('CH-001: 创建变更请求', async () => {
@@ -172,14 +52,14 @@ test.describe('变更管理测试', () => {
   })
 
   test('CH-002: 查看变更请求详情', async () => {
-    await changeRequestPage.gotoDetail(mockChange.id)
+    await changeRequestPage.gotoDetail('change-001')
     await changeRequestPage.expectDetailVisible()
 
     await changeRequestPage.expectChangeDataVisible({
-      title: mockChange.title,
-      ciId: mockChange.ciName,
-      changeType: mockChange.changeTypeLabel,
-      description: mockChange.description
+      title: '测试变更请求',
+      ciId: '测试服务器-01',
+      changeType: '更新配置',
+      description: '这是一个测试变更请求的描述'
     })
   })
 

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { isMockMode, setupCommonMocks } from './setup/test-config'
+import { isMockMode, isFullMode, setupCommonMocks, setupFallbackMocks } from './setup/test-config'
 import { LoginPage } from './pages/LoginPage'
 import { CIDetailPage } from './pages/CIDetailPage'
 import { CIListPage } from './pages/CIListPage'
@@ -19,14 +19,54 @@ test.describe('配置项删除测试', () => {
 
   let deletedCIIds: string[] = []
 
+  // Full 模式下通过 API 创建的测试 CI
+  let fullModeTestCI: { id: string; name: string } | null = null
+
   test.beforeEach(async ({ page }) => {
-    // 只在 mock 模式下设置拦截器
-    if (!isMockMode()) {
-      loginPage = new LoginPage(page)
-      ciDetailPage = new CIDetailPage(page)
-      ciListPage = new CIListPage(page)
+    loginPage = new LoginPage(page)
+    ciDetailPage = new CIDetailPage(page)
+    ciListPage = new CIListPage(page)
+
+    // Full 模式：登录 + 设置 fallback mocks + 创建测试 CI
+    if (isFullMode()) {
+      await setupFallbackMocks(page)
+      await loginPage.goto()
+      await loginPage.login('admin', 'admin123')
+      await loginPage.waitForLoginSuccess()
+
+      // 通过真实 API 创建一个临时 CI 用于删除测试
+      // 先从 zustand store 中获取 token
+      const token = await page.evaluate(() => {
+        const stored = localStorage.getItem('cmdb-user-storage')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          return parsed.state?.token
+        }
+        return null
+      })
+
+      const ciName = '待删除测试服务器-' + Date.now()
+      const apiResponse = await page.request.post('http://127.0.0.1:8000/api/ci', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        data: {
+          name: ciName,
+          type: 'server',
+          ip: '192.168.1.100',
+          project: '测试项目',
+          environment: 'production',
+        },
+      })
+      const apiData = await apiResponse.json()
+      fullModeTestCI = { id: apiData.data.id, name: ciName }
+      console.log(`Full 模式：创建测试 CI, id=${fullModeTestCI.id}`)
       return
     }
+
+    // Mock 模式：设置拦截器
+    if (!isMockMode()) return
 
     deletedCIIds = []
 
@@ -105,24 +145,33 @@ test.describe('配置项删除测试', () => {
     await loginPage.waitForLoginSuccess()
   })
 
+  // 获取当前模式的测试 CI 数据
+  const getTestCI = () => {
+    if (isFullMode() && fullModeTestCI) {
+      return fullModeTestCI
+    }
+    return mockCI
+  }
+
   test('CI-016: 删除配置项显示确认对话框', async () => {
-    await ciDetailPage.goto(mockCI.id)
+    const testCI = getTestCI()
+    await ciDetailPage.goto(testCI.id)
     await ciDetailPage.expectDetailVisible()
 
-    // 点击删除按钮
-    await ciDetailPage.clickDeleteButtonAndConfirm()
+    // 点击删除按钮（不确认）
+    await ciDetailPage.clickDeleteButton()
 
     // 验证确认对话框显示
     await ciDetailPage.expectConfirmDialog()
   })
 
   test('CI-017: 确认删除配置项', async () => {
-    await ciDetailPage.goto(mockCI.id)
+    const testCI = getTestCI()
+    await ciDetailPage.goto(testCI.id)
     await ciDetailPage.expectDetailVisible()
 
     // 删除并确认
     await ciDetailPage.clickDeleteButtonAndConfirm()
-    await ciDetailPage.expectConfirmDialog()
 
     // 验证删除成功，跳转到列表页
     await ciDetailPage.expectDeleteSuccess()
@@ -130,7 +179,8 @@ test.describe('配置项删除测试', () => {
   })
 
   test('CI-018: 取消删除操作', async () => {
-    await ciDetailPage.goto(mockCI.id)
+    const testCI = getTestCI()
+    await ciDetailPage.goto(testCI.id)
     await ciDetailPage.expectDetailVisible()
 
     // 点击删除按钮
@@ -142,12 +192,13 @@ test.describe('配置项删除测试', () => {
 
     // 验证停留在详情页
     await ciDetailPage.expectDetailVisible()
-    await ciDetailPage.expectCIDataVisible({ name: mockCI.name })
+    await ciDetailPage.expectCIDataVisible({ name: testCI.name })
   })
 
   test('CI-019: 删除后跳转到列表页', async () => {
+    const testCI = getTestCI()
     // 删除CI
-    await ciDetailPage.goto(mockCI.id)
+    await ciDetailPage.goto(testCI.id)
     await ciDetailPage.clickDeleteButtonAndConfirm()
 
     // 验证删除成功后跳转到列表页

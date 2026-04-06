@@ -26,7 +26,7 @@ interface UserState {
 let globalToken: string | null = null
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api',
   timeout: 30000,
   withCredentials: false, // 禁用cookie，使用Authorization头
 })
@@ -71,6 +71,14 @@ export const useUserStore = create<UserState>()(
       login: async (username: string, password: string) => {
         set({ isLoading: true })
         try {
+          // 优先尝试真实 API 登录
+          const response = await api.post('/auth/login', { username, password })
+          const { token, user } = response.data.data
+          globalToken = token
+          set({ user, token, isLoggedIn: true, isLoading: false, isHydrated: true })
+          return true
+        } catch (error) {
+          // 真实 API 不可用时回退到 mock（用于无后端的独立前端开发）
           const mockResult = await mockLogin(username, password)
           if (mockResult) {
             const { token, user } = mockResult
@@ -78,13 +86,6 @@ export const useUserStore = create<UserState>()(
             set({ user, token, isLoggedIn: true, isLoading: false, isHydrated: true })
             return true
           }
-
-          const response = await api.post('/auth/login', { username, password })
-          const { token, user } = response.data.data
-          globalToken = token
-          set({ user, token, isLoggedIn: true, isLoading: false, isHydrated: true })
-          return true
-        } catch (error) {
           set({ isLoading: false })
           console.error('Login failed:', error)
           return false
@@ -118,21 +119,7 @@ export const useUserStore = create<UserState>()(
           const response = await api.get('/auth/me')
           set({ user: response.data.data, isLoggedIn: true, isHydrated: true })
         } catch {
-          if (token.startsWith('mock-jwt-token')) {
-            set({
-              user: {
-                id: '1',
-                username: 'admin',
-                email: 'admin@example.com',
-                role: 'admin',
-                permissions: ['*'],
-              },
-              isLoggedIn: true,
-              isHydrated: true,
-            })
-          } else {
-            get().logout()
-          }
+          get().logout()
         }
       },
 

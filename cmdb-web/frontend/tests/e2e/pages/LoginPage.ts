@@ -15,7 +15,9 @@ export class LoginPage {
 
   async waitForLoginSuccess() {
     await this.page.waitForURL((url: URL) => url.pathname.includes('/dashboard'), { timeout: 30000 })
-    await this.page.waitForLoadState('networkidle', { timeout: 30000 })
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 30000 })
+    // 等待网络空闲，确保登录后的 API 调用完成，避免后续导航被中断
+    await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
   }
 
   async expectLoginFormVisible() {

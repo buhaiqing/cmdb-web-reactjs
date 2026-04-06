@@ -20,6 +20,12 @@ func SetupRoutes(r *gin.Engine) {
 			auth.POST("/logout", middleware.AuthMiddleware(), Logout)
 		}
 
+		// 权限路由
+		p := api.Group("/permissions", middleware.AuthMiddleware())
+		{
+			p.GET("", ListPermissions)
+		}
+
 		// 用户路由
 		users := api.Group("/users", middleware.AuthMiddleware())
 		{
@@ -55,6 +61,8 @@ func SetupRoutes(r *gin.Engine) {
 		{
 			relations.GET("", ListRelations)
 			relations.POST("", CreateRelation)
+			relations.GET("/graph", GetRelationGraph)       // 必须在 :id 之前
+			relations.GET("/impact/:ciId", AnalyzeImpact)   // 必须在 :id 之前
 			relations.GET("/:id", GetRelation)
 			relations.PUT("/:id", UpdateRelation)
 			relations.DELETE("/:id", DeleteRelation)

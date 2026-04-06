@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Card, Descriptions, Tag, Button, Space, Spin, Row, Col, Table, Modal } from 'antd'
 import { EditOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons'
@@ -18,42 +18,30 @@ interface Relation {
 export default function CIDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { currentCI, isLoading, fetchCIDetail } = useCIStore()
+  const { currentCI, isLoading, fetchCIDetail, deleteCI } = useCIStore()
   const [relations, setRelations] = useState<Relation[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const ciId = params.id as string
 
-  useEffect(() => {
-    if (ciId) {
-      setError(null)
-      fetchCIDetail(ciId).catch(() => {
-        setError('配置项不存在或已被删除')
-      })
-      setRelations([
-        { id: '1', targetCI: 'DB-主库-01', relationType: '依赖', description: '数据库连接' },
-        { id: '2', targetCI: 'APP-订单服务', relationType: '连接', description: '上游服务' },
-      ])
-    }
-  }, [ciId, fetchCIDetail])
+  // 静态配置使用 useMemo 缓存
+  const ciStatusOptions = useMemo(() => ({
+    running: { color: 'green', label: '运行中' },
+    stopped: { color: 'red', label: '已停止' },
+    maintenance: { color: 'orange', label: '维护中' },
+  }), [])
 
-  const handleDelete = () => {
-    Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除此配置项吗？此操作不可恢复。',
-      okText: '确认',
-      okType: 'danger',
-      cancelText: '取消',
-      async onOk() {
-        const success = await useCIStore.getState().deleteCI(ciId)
-        if (success) {
-          router.push('/ci/list')
-        }
-      },
-    })
-  }
+  const ciTypeOptions = useMemo(() => ({
+    server: '服务器',
+    database: '数据库',
+    middleware: '中间件',
+    container: '容器',
+    application: '应用程序',
+    cloud: '云资源',
+  }), [])
 
-  const relationColumns: ColumnsType<Relation> = [
+  // 表格列配置使用 useMemo 缓存
+  const relationColumns = useMemo<ColumnsType<Relation>>(() => [
     {
       title: '目标配置项',
       dataIndex: 'targetCI',
@@ -72,7 +60,38 @@ export default function CIDetailPage() {
       key: 'description',
       render: (text: string) => <span data-testid="cell-relation-desc">{text}</span>,
     },
-  ]
+  ], [])
+
+  // 处理删除操作使用 useCallback 缓存
+  const handleDelete = useCallback(() => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除此配置项吗？此操作不可恢复。',
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      async onOk() {
+        const success = await deleteCI(ciId)
+        if (success) {
+          router.push('/ci/list')
+        }
+      },
+    })
+  }, [ciId, deleteCI, router])
+
+  useEffect(() => {
+    if (ciId) {
+      setError(null)
+      fetchCIDetail(ciId).catch(() => {
+        setError('配置项不存在或已被删除')
+      })
+      // 静态数据可以直接定义，不需要在 useEffect 中设置
+      setRelations([
+        { id: '1', targetCI: 'DB-主库-01', relationType: '依赖', description: '数据库连接' },
+        { id: '2', targetCI: 'APP-订单服务', relationType: '连接', description: '上游服务' },
+      ])
+    }
+  }, [ciId, fetchCIDetail])
 
   const ci = currentCI
 
@@ -120,21 +139,6 @@ export default function CIDetailPage() {
         </Spin>
       </div>
     )
-  }
-
-  const ciStatusOptions: Record<string, { color: string; label: string }> = {
-    running: { color: 'green', label: '运行中' },
-    stopped: { color: 'red', label: '已停止' },
-    maintenance: { color: 'orange', label: '维护中' },
-  }
-
-  const ciTypeOptions: Record<string, string> = {
-    server: '服务器',
-    database: '数据库',
-    middleware: '中间件',
-    container: '容器',
-    application: '应用程序',
-    cloud: '云资源',
   }
 
   return (

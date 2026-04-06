@@ -39,7 +39,7 @@ sleep 5
 # 等待 Go 后端启动
 echo "检查 Go 后端服务启动状态..."
 for i in $(seq 1 15); do
-    if curl -s http://localhost:8000/api/health >/dev/null 2>&1; then
+    if curl -s http://127.0.0.1:8000/api/health >/dev/null 2>&1; then
         echo "Go 后端服务启动成功"
         break
     fi
@@ -47,7 +47,7 @@ for i in $(seq 1 15); do
     sleep 2
 done
 
-if ! curl -s http://localhost:8000/api/health >/dev/null 2>&1; then
+if ! curl -s http://127.0.0.1:8000/api/health >/dev/null 2>&1; then
     echo "错误：Go 后端服务启动失败"
     kill $BACKEND_PID 2>/dev/null || true
     exit 1
@@ -55,7 +55,7 @@ fi
 
 # 启动前端
 echo "启动前端开发服务器..."
-export NEXT_PUBLIC_API_URL=http://localhost:8000/api
+export NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api
 (cd frontend && npm run dev -- -p 3001) &
 FRONTEND_PID=$!
 
@@ -64,7 +64,7 @@ sleep 8
 # 等待前端启动
 echo "检查前端服务启动状态..."
 for i in $(seq 1 15); do
-    if curl -s http://localhost:3001 >/dev/null 2>&1; then
+    if curl -s http://127.0.0.1:3001 >/dev/null 2>&1; then
         echo "前端服务启动成功"
         break
     fi
@@ -72,15 +72,16 @@ for i in $(seq 1 15); do
     sleep 2
 done
 
-if ! curl -s http://localhost:3001 >/dev/null 2>&1; then
+if ! curl -s http://127.0.0.1:3001 >/dev/null 2>&1; then
     echo "错误：前端服务启动失败"
     kill $BACKEND_PID 2>/dev/null || true
     kill $FRONTEND_PID 2>/dev/null || true
     exit 1
 fi
 
-# 运行测试
+# 运行测试 - 支持多业务模块并行执行
 echo "运行前端 E2E 测试（Go 后端模式）..."
+echo "按业务模块并行执行测试..."
 (cd frontend && npm run test:e2e:full -- --max-failures=3)
 TEST_EXIT_CODE=$?
 

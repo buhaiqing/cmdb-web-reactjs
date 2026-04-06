@@ -1,59 +1,43 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { Table, Button, Input, Space, Tag, Card, Row, Col, Select } from 'antd'
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import Link from 'next/link'
 import { useCIStore, CI } from '@/stores/ci'
 
+// 静态模拟数据
+const mockData: CI[] = [
+  { id: '1', name: 'DB-主库-01', type: 'database', status: 'running', ip: '10.0.1.101', project: '订单系统', environment: 'production', createdAt: '2024-01-10 10:00', updatedAt: '2024-01-15 10:00' },
+  { id: '2', name: 'APP-订单服务', type: 'application', status: 'running', ip: '10.0.1.102', project: '订单系统', environment: 'production', createdAt: '2024-01-09 09:00', updatedAt: '2024-01-14 16:00' },
+  { id: '3', name: 'K8S-Node-01', type: 'container', status: 'running', ip: '10.0.2.1', project: '基础设施', environment: 'production', createdAt: '2024-01-08 08:00', updatedAt: '2024-01-13 12:00' },
+  { id: '4', name: 'Web-前端服务', type: 'application', status: 'stopped', ip: '10.0.1.103', project: '官网系统', environment: 'staging', createdAt: '2024-01-07 14:00', updatedAt: '2024-01-12 18:00' },
+]
+
 export default function CIListPage() {
   const { ciList, pagination, isLoading, fetchCIList } = useCIStore()
   const [searchText, setSearchText] = useState('')
   const [selectedType, setSelectedType] = useState<string>('')
 
-  useEffect(() => {
-    fetchCIList()
-  }, [fetchCIList])
-
-  const handleSearch = () => {
-    fetchCIList({
-      filters: {
-        search: searchText,
-        type: selectedType,
-      },
-    })
-  }
-
-  const handleReset = () => {
-    setSearchText('')
-    setSelectedType('')
-    fetchCIList()
-  }
-
-  const handleTableChange = (paginationConfig: { current?: number; pageSize?: number }) => {
-    fetchCIList({
-      page: paginationConfig.current,
-      pageSize: paginationConfig.pageSize,
-    })
-  }
-
-  const ciTypeOptions = [
+  // 静态配置使用 useMemo 缓存
+  const ciTypeOptions = useMemo(() => [
     { value: 'server', label: '服务器' },
     { value: 'database', label: '数据库' },
     { value: 'middleware', label: '中间件' },
     { value: 'container', label: '容器' },
     { value: 'application', label: '应用程序' },
     { value: 'cloud', label: '云资源' },
-  ]
+  ], [])
 
-  const ciStatusOptions = [
+  const ciStatusOptions = useMemo(() => [
     { value: 'running', label: '运行中', color: 'green' },
     { value: 'stopped', label: '已停止', color: 'red' },
     { value: 'maintenance', label: '维护中', color: 'orange' },
-  ]
+  ], [])
 
-  const columns: ColumnsType<CI> = [
+  // 表格列配置使用 useMemo 缓存
+  const columns = useMemo<ColumnsType<CI>>(() => [
     {
       title: '名称',
       dataIndex: 'name',
@@ -151,14 +135,34 @@ export default function CIListPage() {
         </Space>
       ),
     },
-  ]
+  ], [ciStatusOptions])
 
-  const mockData: CI[] = [
-    { id: '1', name: 'DB-主库-01', type: 'database', status: 'running', ip: '10.0.1.101', project: '订单系统', environment: 'production', createdAt: '2024-01-10 10:00', updatedAt: '2024-01-15 10:00' },
-    { id: '2', name: 'APP-订单服务', type: 'application', status: 'running', ip: '10.0.1.102', project: '订单系统', environment: 'production', createdAt: '2024-01-09 09:00', updatedAt: '2024-01-14 16:00' },
-    { id: '3', name: 'K8S-Node-01', type: 'container', status: 'running', ip: '10.0.2.1', project: '基础设施', environment: 'production', createdAt: '2024-01-08 08:00', updatedAt: '2024-01-13 12:00' },
-    { id: '4', name: 'Web-前端服务', type: 'application', status: 'stopped', ip: '10.0.1.103', project: '官网系统', environment: 'staging', createdAt: '2024-01-07 14:00', updatedAt: '2024-01-12 18:00' },
-  ]
+  // 处理函数使用 useCallback 缓存
+  const handleSearch = useCallback(() => {
+    fetchCIList({
+      filters: {
+        search: searchText,
+        type: selectedType,
+      },
+    })
+  }, [searchText, selectedType, fetchCIList])
+
+  const handleReset = useCallback(() => {
+    setSearchText('')
+    setSelectedType('')
+    fetchCIList()
+  }, [fetchCIList])
+
+  const handleTableChange = useCallback((paginationConfig: { current?: number; pageSize?: number }) => {
+    fetchCIList({
+      page: paginationConfig.current,
+      pageSize: paginationConfig.pageSize,
+    })
+  }, [fetchCIList])
+
+  useEffect(() => {
+    fetchCIList()
+  }, [fetchCIList])
 
   return (
     <div className="page-ci-list" data-testid="page-ci-list">

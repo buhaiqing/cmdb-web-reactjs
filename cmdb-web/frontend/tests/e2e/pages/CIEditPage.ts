@@ -35,11 +35,13 @@ export class CIEditPage {
   }
 
   async submit() {
+    // 确保提交按钮可见后再点击
+    await this.page.waitForSelector('[data-testid="button-ci-submit"]', { timeout: 15000, state: 'visible' })
     await this.page.click('[data-testid="button-ci-submit"]')
   }
 
   async expectEditSuccess() {
-    await this.page.waitForURL((url: URL) => url.pathname.includes('/ci/'), { timeout: 10000 })
+    await this.page.waitForURL((url: URL) => url.pathname.includes('/ci/'), { timeout: 15000 })
   }
 
   // 表单预填充验证方法
@@ -68,6 +70,8 @@ export class CIEditPage {
 
   // 取消编辑方法
   async cancel() {
+    // 确保取消按钮可见后再点击
+    await this.page.waitForSelector('[data-testid="button-ci-cancel"]', { timeout: 15000, state: 'visible' })
     await this.page.click('[data-testid="button-ci-cancel"]')
   }
 

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { isMockMode, setupCommonMocks } from './setup/test-config'
+import { isMockMode, isFullMode, setupCommonMocks, setupFallbackMocks } from './setup/test-config'
 import { LoginPage } from './pages/LoginPage'
 import { CICreatePage } from './pages/CICreatePage'
 import { CIListPage } from './pages/CIListPage'
@@ -10,66 +10,136 @@ test.describe('配置项创建测试', () => {
   let ciListPage: CIListPage
 
   test.beforeEach(async ({ page }) => {
-    // 只在 mock 模式下设置拦截器
-    if (!isMockMode()) {
-      loginPage = new LoginPage(page)
-      ciCreatePage = new CICreatePage(page)
-      ciListPage = new CIListPage(page)
-      return
-    }
-
-    // 设置通用的 Mock 路由（认证 + Dashboard）
-    await setupCommonMocks(page)
-
-    // 设置 CI 相关的 Mock 路由
-    await page.route('**/api/**', async (route) => {
-      const url = route.request().url()
-
-      // 如果已经处理过，跳过
-      if (url.includes('/api/auth/') || url.includes('/api/dashboard/') || url.includes('/api/changes/recent')) {
-        return
-      }
-
-      if (url.includes('/api/ci') && route.request().method() === 'POST') {
-        const requestBody = JSON.parse(route.request().postData() || '{}')
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            data: {
-              id: 'new-ci-' + Date.now(),
-              ...requestBody,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-          }),
-        })
-        return
-      }
-
-      if (url.includes('/api/ci') && route.request().method() === 'GET') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            data: {
-              items: [],
-              total: 0,
-            },
-          }),
-        })
-        return
-      }
-
-      await route.continue()
-    })
-
+    // 初始化页面对象
     loginPage = new LoginPage(page)
     ciCreatePage = new CICreatePage(page)
     ciListPage = new CIListPage(page)
 
+    // 只在 mock 模式下设置拦截器
+    if (isMockMode()) {
+      // 设置通用的 Mock 路由（认证 + Dashboard）
+      await setupCommonMocks(page)
+
+      // 统一设置所有 API 请求的 Mock 处理
+      await page.route('**/api/**', async (route) => {
+        const url = route.request().url()
+        const method = route.request().method()
+        console.log('拦截到 API 请求:', url, method)
+        
+        // 处理认证请求
+        if (url.includes('/api/auth/')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: true,
+              data: {
+                token: 'mock-jwt-token-' + Date.now(),
+                user: {
+                  id: '1',
+                  username: 'admin',
+                  email: 'admin@example.com',
+                  role: 'admin',
+                  permissions: ['*'],
+                },
+              },
+            }),
+          })
+          console.log('处理认证请求成功')
+          return
+        }
+
+        // 处理 CI 请求
+        if (url.includes('/api/ci')) {
+          if (method === 'POST') {
+            const requestBody = JSON.parse(route.request().postData() || '{}')
+            await route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify({
+                success: true,
+                data: {
+                  id: 'new-ci-' + Date.now(),
+                  ...requestBody,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  status: 'active',
+                },
+              }),
+            })
+            console.log('处理 POST /api/ci 请求成功')
+          } else if (method === 'GET') {
+            await route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify({
+                success: true,
+                data: {
+                  items: [],
+                  total: 0,
+                },
+              }),
+            })
+            console.log('处理 GET /api/ci 请求成功')
+          } else {
+            // 其他方法的处理
+            await route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify({
+                success: true,
+                data: null,
+              }),
+            })
+            console.log('处理其他 CI 请求成功')
+          }
+          return
+        }
+
+        // 处理 Dashboard 请求
+        if (url.includes('/api/dashboard/')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: true,
+              data: {
+                server: 0,
+                database: 0,
+                middleware: 0,
+                container: 0,
+                changePending: 0,
+              },
+            }),
+          })
+          console.log('处理 Dashboard 请求成功')
+          return
+        }
+
+        // 处理 Changes 请求
+        if (url.includes('/api/changes/')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: true,
+              data: [],
+            }),
+          })
+          console.log('处理 Changes 请求成功')
+          return
+        }
+
+        // 其他请求继续
+        console.log('继续处理其他请求:', url)
+        await route.continue()
+      })
+    } else if (isFullMode()) {
+      // 在 full 模式下设置 fallback mocks
+      await setupFallbackMocks(page)
+    }
+
+    // 无论是否是 mock 模式，都执行登录操作
     await loginPage.goto()
     await loginPage.login('admin', 'admin123')
     await loginPage.waitForLoginSuccess()

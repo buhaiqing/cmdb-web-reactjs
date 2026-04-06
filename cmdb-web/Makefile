@@ -66,6 +66,11 @@ test-e2e-mock:
 	lsof -ti:3001 | xargs kill -9 2>/dev/null || true && \
 	lsof -ti:9323 | xargs kill -9 2>/dev/null || true
 
+# 分析测试结果
+test-analyze:
+	@echo "分析测试结果..."
+	@cd frontend && node tests/e2e/test-analyzer.js
+
 # 运行 E2E 测试 (UI 模式)
 test-e2e-ui:
 	cd frontend && npm run test:e2e:ui -- --max-failures=3
@@ -73,6 +78,40 @@ test-e2e-ui:
 # 运行 E2E 测试 (有头模式)
 test-e2e-headed:
 	cd frontend && npm run test:e2e:headed -- --max-failures=3
+
+# 运行指定业务模块的 E2E 测试
+test-e2e-module:
+	@echo "停止占用端口的进程..."
+	@lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+	@lsof -ti:9323 | xargs kill -9 2>/dev/null || true
+	@sleep 2
+	
+	@echo "启动开发服务器（端口 3001）..."
+	@cd frontend && npm run dev -- -p 3001 & \
+	FRONTEND_PID=$$! && \
+	sleep 5 && \
+	echo "检查前端服务启动状态..." && \
+	for i in $$(seq 1 10); do \
+		if curl -s http://localhost:3001 >/dev/null 2>&1; then \
+			echo "前端服务启动成功"; \
+			break; \
+		fi; \
+		echo "等待前端服务启动... ($$i/10)"; \
+		sleep 2; \
+	done; \
+	if ! curl -s http://localhost:3001 >/dev/null 2>&1; then \
+		echo "错误: 前端服务启动失败"; \
+		kill $$FRONTEND_PID 2>/dev/null || true; \
+		lsof -ti:3001 | xargs kill -9 2>/dev/null || true; \
+		lsof -ti:9323 | xargs kill -9 2>/dev/null || true; \
+		exit 1; \
+	fi && \
+	echo "运行指定业务模块的 E2E 测试..." && \
+	cd frontend && npm run test:e2e -- --max-failures=3 --project "$$@" && \
+	echo "清理进程..." && \
+	kill $$FRONTEND_PID 2>/dev/null || true && \
+	lsof -ti:3001 | xargs kill -9 2>/dev/null || true && \
+	lsof -ti:9323 | xargs kill -9 2>/dev/null || true
 
 # 查看测试报告
 test-report:

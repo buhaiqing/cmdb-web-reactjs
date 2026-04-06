@@ -338,12 +338,24 @@ export default function RelationGraphPage() {
 
             {/* 关系图 */}
             <div style={{ height: 'calc(100% - 57px)', position: 'relative' }}>
-              <RelationGraph
-                nodes={nodes}
-                edges={edges}
-                onNodeClick={handleNodeClick}
-                loading={isLoading}
-              />
+              {isLoading ? (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '100%',
+                  backgroundColor: '#f5f5f5'
+                }}>
+                  <div style={{ color: '#1890ff', fontSize: 14 }}>加载中...</div>
+                </div>
+              ) : (
+                <RelationGraph
+                  nodes={nodes}
+                  edges={edges}
+                  onNodeClick={handleNodeClick}
+                  loading={isLoading}
+                />
+              )}
             </div>
           </Card>
         </Col>

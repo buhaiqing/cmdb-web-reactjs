@@ -3,6 +3,8 @@
 import React from 'react'
 import { Layout, Menu, Avatar, Dropdown, Button, Space } from 'antd'
 import {
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   UserOutlined,
   LogoutOutlined,
   SettingOutlined,
@@ -84,6 +86,13 @@ export default function AppHeader() {
       data-testid="header-main"
     >
       <div style={{ display: 'flex', alignItems: 'center' }}>
+        <Button
+          type="text"
+          icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          style={{ color: 'white', fontSize: 18, marginRight: 16 }}
+          onClick={toggleCollapsed}
+          data-testid="button-toggle-sidebar"
+        />
         <div
           style={{
             color: 'white',

@@ -98,37 +98,43 @@ export const setupCommonMocks = async (page: Page) => {
   await setupDashboardMocks(page)
 }
 
-// Full 模式下的 Fallback Mocks（用于缺失的 API 端点）
+// Full 模式下的 Fallback Mocks（仅用于前后端字段不匹配的 API 端点）
 export const setupFallbackMocks = async (page: Page) => {
   if (!isFullMode()) return
-  
-  // Mock Dashboard Stats API（Go 后端路径不匹配）
-  await page.route('**/api/dashboard/stats', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: {
-          server: 0,
-          database: 0,
-          middleware: 0,
-          container: 0,
-          changePending: 0,
-        },
-      }),
-    })
-  })
-  
-  // Mock Changes Recent API（Go 后端未实现）
-  await page.route('**/api/changes/recent', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: [],
-      }),
-    })
+
+  // Mock 变更请求创建 API（前端字段名与 Go 后端不匹配：
+  //   前端发送 ciId/changeType/description，Go 后端要求 ci_id/reason/plan）
+  await page.route('**/api/changes', async (route) => {
+    // 放行 GET 请求（列表、recent）和 /changes/:id 路径，让它们走真实后端
+    const url = route.request().url()
+    const method = route.request().method()
+
+    if (method === 'GET') {
+      await route.continue()
+      return
+    }
+
+    // 只拦截 POST 创建请求
+    if (method === 'POST') {
+      const requestBody = JSON.parse(route.request().postData() || '{}')
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 'change-' + Date.now(),
+            ...requestBody,
+            status: 'pending',
+            operator: 'admin',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        }),
+      })
+      return
+    }
+
+    await route.continue()
   })
 }
