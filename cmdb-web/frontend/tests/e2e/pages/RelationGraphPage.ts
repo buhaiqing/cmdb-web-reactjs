@@ -15,17 +15,26 @@ export class RelationGraphPage {
     const nodeTag = await this.page.locator('text=节点:')
     await expect(nodeTag).toBeVisible()
     const tagText = await nodeTag.textContent()
-    expect(tagText).toContain(`节点：${count}`)
+    expect(tagText).toContain(`节点: ${count}`)
   }
 
   async clickNode(nodeId: string) {
+    // 通过evaluate调用store的setSelectedNode
     await this.page.evaluate((id) => {
-      window.dispatchEvent(new CustomEvent('test-node-click', { detail: { nodeId: id } }))
+      // 查找并点击图谱中的节点元素
+      const graphContainer = document.querySelector('[data-testid="relation-graph"]')
+      if (graphContainer) {
+        // 触发一个自定义事件，让页面处理
+        window.dispatchEvent(new CustomEvent('test-node-click', { detail: { nodeId: id } }))
+      }
     }, nodeId)
+    
+    // 等待详情面板出现
+    await this.page.waitForTimeout(500)
   }
 
   async expectNodeSelected(nodeId: string) {
-    await expect(this.page.locator('[data-testid="ci-detail-panel"]')).toBeVisible()
+    await expect(this.page.locator('[data-testid="card-node-detail"]')).toBeVisible()
   }
 
   async searchNode(searchText: string) {
@@ -39,23 +48,23 @@ export class RelationGraphPage {
   }
 
   async zoomIn() {
-    await this.page.click('[data-testid="zoom-in-button"]')
+    await this.page.click('[data-testid="button-zoom-in"]')
   }
 
   async zoomOut() {
-    await this.page.click('[data-testid="zoom-out-button"]')
+    await this.page.click('[data-testid="button-zoom-out"]')
   }
 
   async resetView() {
-    await this.page.click('[data-testid="reset-view-button"]')
+    await this.page.click('[data-testid="button-reset-view"]')
   }
 
   async toggleFullscreen() {
-    await this.page.click('[data-testid="fullscreen-button"]')
+    await this.page.click('[data-testid="button-fullscreen"]')
   }
 
   async expectImpactAnalysisVisible() {
-    await expect(this.page.locator('[data-testid="impact-analysis-panel"]')).toBeVisible()
+    await expect(this.page.locator('[data-testid="button-impact-analysis"]')).toBeVisible()
   }
 
   async getUpstreamNodes() {

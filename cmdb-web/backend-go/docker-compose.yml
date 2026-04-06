@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_TYPE=postgres
+      - DATABASE_URL=postgresql://cmdb:cmdb@postgres:5432/cmdb?sslmode=disable
+      - SECRET_KEY=cmdb-secret-key-change-in-production
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=10080
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+      - PROJECT_NAME=CMDB Backend
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data  # SQLite 数据持久化（如使用 SQLite）
+
+  postgres:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=cmdb
+      - POSTGRES_USER=cmdb
+      - POSTGRES_PASSWORD=cmdb
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # MySQL 服务（如使用 MySQL，取消注释）
+  # mysql:
+  #   image: mysql:8.0
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #   environment:
+  #     - MYSQL_ROOT_PASSWORD=rootpassword
+  #     - MYSQL_DATABASE=cmdb
+  #     - MYSQL_USER=cmdb
+  #     - MYSQL_PASSWORD=cmdb
+  #   ports:
+  #     - "3306:3306"
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+  # mysql_data:

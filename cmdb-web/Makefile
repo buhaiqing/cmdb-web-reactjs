@@ -116,79 +116,10 @@ wait_for_port = \
 		exit 1; \
 	fi
 
-# 运行前后端一体化测试（真实数据库）
+# 运行前后端一体化测试（使用 backend-go）
 test-full:
-	@echo "开始运行前后端一体化测试..."
-	
-	# 检查并清理端口
-	@echo "检查并清理端口..."
-	$(call check_port,3001)
-	$(call check_port,8000)
-	$(call check_port,9323)
-	$(call wait_for_port,3001)
-	$(call wait_for_port,8000)
-	$(call wait_for_port,9323)
-	
-	# 设置测试环境变量
-	@export TEST_MODE=true
-	
-	# 初始化测试数据库和测试数据
-	@echo "初始化测试数据库和测试数据..."
-	@cd backend && python3 -c "from app.seed import seed_test_data; import asyncio; asyncio.run(seed_test_data())"
-	
-	# 启动后端服务器（后台运行，使用测试配置）
-	@echo "启动后端服务器..."
-	@cd backend && python3 -m uvicorn app.main:app --reload --port 8000 & \
-	BACKEND_PID=$$! && \
-	sleep 3 && \
-	echo "检查后端服务启动状态..." && \
-	for i in $$(seq 1 10); do \
-		if curl -s http://localhost:8000/api/health >/dev/null 2>&1; then \
-			echo "后端服务启动成功"; \
-			break; \
-		fi; \
-		echo "等待后端服务启动... ($$i/10)"; \
-		sleep 2; \
-	done; \
-	if ! curl -s http://localhost:8000/api/health >/dev/null 2>&1; then \
-		echo "错误: 后端服务启动失败"; \
-		kill $$BACKEND_PID 2>/dev/null || true; \
-		lsof -ti:3001 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:8000 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:9323 | xargs kill -9 2>/dev/null || true; \
-		exit 1; \
-	fi && \
-	echo "启动前端开发服务器..." && \
-	cd frontend && NEXT_PUBLIC_API_URL=http://localhost:8000/api npm run dev -- -p 3001 & \
-	FRONTEND_PID=$$! && \
-	sleep 5 && \
-	echo "检查前端服务启动状态..." && \
-	for i in $$(seq 1 10); do \
-		if curl -s http://localhost:3001 >/dev/null 2>&1; then \
-			echo "前端服务启动成功"; \
-			break; \
-		fi; \
-		echo "等待前端服务启动... ($$i/10)"; \
-		sleep 2; \
-	done; \
-	if ! curl -s http://localhost:3001 >/dev/null 2>&1; then \
-		echo "错误: 前端服务启动失败"; \
-		kill $$BACKEND_PID 2>/dev/null || true; \
-		kill $$FRONTEND_PID 2>/dev/null || true; \
-		lsof -ti:3001 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:8000 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:9323 | xargs kill -9 2>/dev/null || true; \
-		exit 1; \
-	fi && \
-	echo "运行前端 E2E 测试（真实后端模式）..." && \
-	cd frontend && npm run test:e2e:full -- --max-failures=3 && \
-	echo "清理进程..." && \
-	kill $$BACKEND_PID 2>/dev/null || true && \
-	kill $$FRONTEND_PID 2>/dev/null || true && \
-	lsof -ti:3001 | xargs kill -9 2>/dev/null || true && \
-	lsof -ti:8000 | xargs kill -9 2>/dev/null || true && \
-	lsof -ti:9323 | xargs kill -9 2>/dev/null || true && \
-	echo "一体化测试完成"
+	@chmod +x scripts/test-full.sh
+	@./scripts/test-full.sh
 
 # 清理占用端口的进程
 kill-ports:

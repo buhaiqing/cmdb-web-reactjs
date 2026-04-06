@@ -38,8 +38,15 @@ const menuList: MenuItem[] = [
     label: '配置项管理',
     children: [
       { key: '/ci/list', label: '配置项列表', path: '/ci/list' },
-      { key: '/ci/types', label: '配置项类型', path: '/ci/types' },
-      { key: '/ci/relations', label: '关系管理', path: '/ci/relations' },
+      { key: '/ci/create', label: '创建配置项', path: '/ci/create' },
+    ],
+  },
+  {
+    key: '/relation',
+    icon: <AuditOutlined />,
+    label: '关系管理',
+    children: [
+      { key: '/relation/graph', label: '关系图谱', path: '/relation/graph' },
     ],
   },
   {

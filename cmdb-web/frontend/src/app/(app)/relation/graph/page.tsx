@@ -80,7 +80,22 @@ export default function RelationGraphPage() {
 
   useEffect(() => {
     fetchRelationData()
-  }, [fetchRelationData])
+    
+    // 为测试添加事件监听器
+    const handleTestNodeClick = (event: CustomEvent) => {
+      const { nodeId } = event.detail
+      const node = nodes.find(n => n.id === nodeId)
+      if (node) {
+        setSelectedNode(node)
+      }
+    }
+    
+    window.addEventListener('test-node-click', handleTestNodeClick as EventListener)
+    
+    return () => {
+      window.removeEventListener('test-node-click', handleTestNodeClick as EventListener)
+    }
+  }, [fetchRelationData, nodes, setSelectedNode])
 
   const handleRefresh = () => {
     fetchRelationData({

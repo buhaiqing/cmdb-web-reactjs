@@ -29,22 +29,14 @@ def create_access_token(data: dict) -> str:
 
 
 def decode_access_token(token: str) -> dict:
-    if token.startswith("mock-jwt-token"):
-        return {
-            "sub": "1",
-            "username": "admin",
-            "role": "admin",
-            "exp": datetime.now(timezone.utc) + timedelta(days=7),
-        }
+    """
+    解码JWT Token
+    
+    注意：后端不应该处理Mock token，Mock应该在前端测试层实现
+    """
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        return payload
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
         )
         return payload
     except JWTError:

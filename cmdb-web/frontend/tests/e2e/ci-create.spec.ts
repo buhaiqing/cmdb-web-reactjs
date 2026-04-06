@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { isMockMode } from './setup/test-config'
+import { isMockMode, setupCommonMocks } from './setup/test-config'
 import { LoginPage } from './pages/LoginPage'
 import { CICreatePage } from './pages/CICreatePage'
 import { CIListPage } from './pages/CIListPage'
@@ -18,45 +18,15 @@ test.describe('配置项创建测试', () => {
       return
     }
 
+    // 设置通用的 Mock 路由（认证 + Dashboard）
+    await setupCommonMocks(page)
+
+    // 设置 CI 相关的 Mock 路由
     await page.route('**/api/**', async (route) => {
       const url = route.request().url()
 
-      if (url.includes('/api/auth/login')) {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            data: {
-              token: 'mock-jwt-token',
-              user: {
-                id: '1',
-                username: 'admin',
-                email: 'admin@example.com',
-                role: 'admin',
-                permissions: ['*'],
-              },
-            },
-          }),
-        })
-        return
-      }
-
-      if (url.includes('/api/auth/me')) {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            data: {
-              id: '1',
-              username: 'admin',
-              email: 'admin@example.com',
-              role: 'admin',
-              permissions: ['*'],
-            },
-          }),
-        })
+      // 如果已经处理过，跳过
+      if (url.includes('/api/auth/') || url.includes('/api/dashboard/') || url.includes('/api/changes/recent')) {
         return
       }
 
