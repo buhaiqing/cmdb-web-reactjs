@@ -9,10 +9,13 @@ export class CIDetailPage {
 
   async expectDetailVisible() {
     await expect(this.page.locator('[data-testid="page-ci-detail"]')).toBeVisible()
+    // 等待 CI 名称元素出现，表示数据已加载（增加超时时间）
+    await expect(this.page.locator('[data-testid="ci-detail-name"]')).toBeVisible({ timeout: 15000 })
   }
 
   async expectRelationsVisible() {
-    await expect(this.page.locator('[data-testid="table-ci-relations"]')).toBeVisible()
+    await expect(this.page.locator('[data-testid="card-ci-relations"]')).toBeVisible({ timeout: 10000 })
+    await expect(this.page.locator('[data-testid="table-ci-relations"]')).toBeVisible({ timeout: 10000 })
   }
 
   async clickEditButton() {

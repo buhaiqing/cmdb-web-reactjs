@@ -79,9 +79,10 @@ export const useCIStore = create<CIState>((set, get) => ({
     try {
       const response = await api.get(`/ci/${id}`)
       set({ currentCI: response.data.data, isLoading: false })
-    } catch (error) {
+    } catch (error: any) {
       set({ isLoading: false })
-      console.error('Failed to fetch CI detail:', error)
+      console.error('Failed to fetch CI detail:', error?.response?.status, error?.response?.data || error?.message || error)
+      throw error
     }
   },
 

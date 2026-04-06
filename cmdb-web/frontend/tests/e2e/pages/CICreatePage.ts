@@ -38,7 +38,9 @@ export class CICreatePage {
   }
 
   async expectCreateSuccess() {
-    await this.page.waitForURL((url: URL) => url.pathname.includes('/ci/list'), { timeout: 10000 })
+    // 等待成功消息出现，然后验证URL跳转
+    await this.page.waitForSelector('.ant-message-success', { timeout: 15000 })
+    await this.page.waitForURL((url: URL) => url.pathname.includes('/ci/list'), { timeout: 15000 })
   }
 
   async cancel() {

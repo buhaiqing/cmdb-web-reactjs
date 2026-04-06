@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import axios from 'axios'
-import Cookies from 'js-cookie'
 
 interface User {
   id: string
@@ -23,15 +22,19 @@ interface UserState {
   hasPermission: (permission: string) => boolean
 }
 
+// 使用内存存储token，避免跨域cookie问题
+let globalToken: string | null = null
+
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api',
   timeout: 30000,
-  withCredentials: true,
+  withCredentials: false, // 禁用cookie，使用Authorization头
 })
 
 api.interceptors.request.use(
   (config) => {
-    const token = Cookies.get('token')
+    // 优先使用内存中的token，用于服务端渲染兼容性
+    const token = globalToken
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -71,14 +74,14 @@ export const useUserStore = create<UserState>()(
           const mockResult = await mockLogin(username, password)
           if (mockResult) {
             const { token, user } = mockResult
-            Cookies.set('token', token, { expires: 7 })
+            globalToken = token
             set({ user, token, isLoggedIn: true, isLoading: false, isHydrated: true })
             return true
           }
 
           const response = await api.post('/auth/login', { username, password })
           const { token, user } = response.data.data
-          Cookies.set('token', token, { expires: 7 })
+          globalToken = token
           set({ user, token, isLoggedIn: true, isLoading: false, isHydrated: true })
           return true
         } catch (error) {
@@ -89,7 +92,7 @@ export const useUserStore = create<UserState>()(
       },
 
       logout: () => {
-        Cookies.remove('token')
+        globalToken = null
         set({ user: null, token: null, isLoggedIn: false, isHydrated: true })
       },
 
@@ -97,16 +100,19 @@ export const useUserStore = create<UserState>()(
         const state = get()
 
         if (state.isLoggedIn && state.token && state.user) {
+          // 同步内存token
+          globalToken = state.token
           set({ isHydrated: true })
           return
         }
 
-        const token = Cookies.get('token') || state.token
+        const token = state.token
         if (!token) {
           set({ isLoggedIn: false, isHydrated: true })
           return
         }
 
+        globalToken = token
         set({ token })
         try {
           const response = await api.get('/auth/me')

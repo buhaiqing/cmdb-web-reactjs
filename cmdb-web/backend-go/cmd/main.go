@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 
@@ -47,16 +48,32 @@ func main() {
 	// 创建 Gin 引擎
 	r := gin.Default()
 
-	// 配置 CORS 中间件
+	// 配置 CORS 中间件 - 必须在使用 withCredentials 时指定具体 Origin
 	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := c.GetHeader("Origin")
+
+		// 允许的 Origins（必须明确指定，不能使用通配符 *）
+		allowedOrigins := map[string]bool{
+			"http://localhost:3000":  true,
+			"http://localhost:3001":  true,
+			"http://localhost:3002":  true,
+			"http://127.0.0.1:3000":  true,
+			"http://127.0.0.1:3001":  true,
+			"http://127.0.0.1:3002":  true,
+		}
+
+		// 只允许特定的 Origin（不能使用 *，因为前端设置了 withCredentials: true）
+		if allowedOrigins[origin] {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		}
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
 
 		// 处理 OPTIONS 预检请求
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+			c.AbortWithStatus(http.StatusOK)
 			return
 		}
 

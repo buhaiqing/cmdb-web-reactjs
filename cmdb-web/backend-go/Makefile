@@ -57,12 +57,40 @@ test:
 	@echo "Running tests..."
 	@go test -v ./...
 
+# 快速并行测试（推荐开发使用）
+test-fast:
+	@echo "Running fast parallel tests..."
+	@go test -p=4 -parallel=4 -count=1 -timeout=60s ./...
+
+# 超快并行测试（使用所有CPU核心）
+test-ultra-fast:
+	@echo "Running ultra-fast parallel tests..."
+	@go test -p=$$(sysctl -n hw.ncpu 2>/dev/null || echo 4) \
+		-parallel=$$(sysctl -n hw.ncpu 2>/dev/null || echo 4) \
+		-count=1 -timeout=60s ./...
+
+# CI优化测试（fail-fast模式）
+test-ci:
+	@echo "Running CI-optimized tests (fail-fast)..."
+	@go test -failfast -timeout=30s -race ./...
+
 # 运行测试并生成覆盖率报告
 test-cover:
 	@echo "Running tests with coverage..."
 	@go test -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
+	@go tool cover -func=coverage.out | grep total
+
+# 分层测试：单元测试（最快）
+test-unit:
+	@echo "Running unit tests only..."
+	@go test -short -count=1 ./internal/config ./internal/utils ./internal/security
+
+# 分层测试：集成测试
+test-integration:
+	@echo "Running integration tests..."
+	@go test -count=1 ./internal/routes ./internal/database
 
 # 清理
 clean:

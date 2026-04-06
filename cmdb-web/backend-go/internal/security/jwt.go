@@ -17,8 +17,18 @@ func VerifyPassword(plainPassword, hashedPassword string) bool {
 
 // HashPassword 对密码进行哈希
 func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	// 测试环境下使用较低的cost以加速测试
+	cost := bcrypt.DefaultCost
+	if isTestEnv() {
+		cost = 4 // 测试环境使用cost=4，生产环境使用DefaultCost(10)
+	}
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), cost)
 	return string(bytes), err
+}
+
+// isTestEnv 检查是否在测试环境
+func isTestEnv() bool {
+	return config.GetConfig().DatabaseURL == ":memory:"
 }
 
 // CreateAccessToken 创建 JWT Token

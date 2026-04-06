@@ -11,12 +11,23 @@ lsof -ti:8000 | xargs kill -9 2>/dev/null || true
 lsof -ti:9323 | xargs kill -9 2>/dev/null || true
 sleep 2
 
+# 恢复 .env.local
+if [ -f frontend/.env.local.backup ]; then
+    mv frontend/.env.local.backup frontend/.env.local
+fi
+
 # 设置环境变量
 export TEST_MODE=full
 
 # 清理并初始化数据库
 echo "初始化 Go 后端数据库（SQLite）..."
 rm -f backend-go/cmdb.db
+
+# 临时备份并清空 .env.local，避免覆盖命令行环境变量
+if [ -f frontend/.env.local ]; then
+    cp frontend/.env.local frontend/.env.local.backup
+    > frontend/.env.local
+fi
 
 # 启动 Go 后端
 echo "启动 Go 后端服务器（SQLite 模式）..."
@@ -44,7 +55,8 @@ fi
 
 # 启动前端
 echo "启动前端开发服务器..."
-(cd frontend && NEXT_PUBLIC_API_URL=http://localhost:8000/api npm run dev -- -p 3001) &
+export NEXT_PUBLIC_API_URL=http://localhost:8000/api
+(cd frontend && npm run dev -- -p 3001) &
 FRONTEND_PID=$!
 
 sleep 8

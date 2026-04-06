@@ -23,6 +23,7 @@ import (
 )
 
 var testDBMutex sync.Mutex
+var sharedTestDB *gorm.DB // 共享测试数据库，用于加速测试
 
 // setupTestDB 为每个测试创建独立的数据库实例
 func setupTestDB() *gorm.DB {
@@ -46,10 +47,14 @@ func setupTestDB() *gorm.DB {
 		panic(fmt.Sprintf("Failed to open test database: %v", err))
 	}
 
-	// 配置连接池
+	// 配置连接池（优化并发性能）
 	sqlDB, _ := db.DB()
-	sqlDB.SetMaxIdleConns(1)
-	sqlDB.SetMaxOpenConns(1)
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(50)
+
+	// 启用WAL模式提升并发性能
+	sqlDB.Exec("PRAGMA journal_mode=WAL")
+	sqlDB.Exec("PRAGMA busy_timeout=5000")
 
 	// 自动迁移
 	db.AutoMigrate(
@@ -371,21 +376,64 @@ func TestDeleteCI(t *testing.T) {
 // User Tests
 func TestCreateUser(t *testing.T) {
 	db := setupTestWithDB(t)
-	_ = db
+
+	// 创建一个角色用于关联
+	role := models.Role{
+		ID:       "role-create-user",
+		Name:     "developer",
+		Code:     "developer",
+		IsActive: true,
+	}
+	db.Create(&role)
 
 	router := setupTestRouter()
 	router.POST("/api/users", middleware.AuthMiddleware(), CreateUser)
 
 	token := getTestToken()
-	userData := `{"username":"newuser","email":"new@test.com","password":"pass123"}`
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/api/users", bytes.NewBufferString(userData))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	router.ServeHTTP(w, req)
+	t.Run("创建成功", func(t *testing.T) {
+		userData := `{"username":"newuser","email":"new@test.com","password":"pass123"}`
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/users", bytes.NewBufferString(userData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusCreated, w.Code)
+		assert.Equal(t, http.StatusCreated, w.Code)
+	})
+
+	t.Run("带角色ID创建", func(t *testing.T) {
+		userData := `{"username":"userwithrole","email":"role@test.com","password":"pass123","role_id":"role-create-user"}`
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/users", bytes.NewBufferString(userData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+	})
+
+	t.Run("缺少必填字段返回400", func(t *testing.T) {
+		userData := `{"email":"no-username@test.com"}`
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/users", bytes.NewBufferString(userData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("无效JSON返回400", func(t *testing.T) {
+		userData := `{invalid json}`
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/users", bytes.NewBufferString(userData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
 }
 
 func TestGetUser(t *testing.T) {
@@ -682,21 +730,121 @@ func TestDeleteRole(t *testing.T) {
 
 func TestUpdateUser(t *testing.T) {
 	db := setupTestWithDB(t)
-	_ = db
+
+	// 创建一个测试用户
+	testUser := models.User{
+		ID:             "user-update-test",
+		Username:       "updateme",
+		Email:          "update@test.com",
+		HashedPassword: "hashed",
+		IsActive:       true,
+	}
+	db.Create(&testUser)
 
 	router := setupTestRouter()
 	router.PUT("/api/users/:id", middleware.AuthMiddleware(), UpdateUser)
 
 	token := getTestToken()
-	updateData := `{"email":"updated@example.com"}`
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("PUT", "/api/users/test-user-id", bytes.NewBufferString(updateData))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	router.ServeHTTP(w, req)
 
-	// 应该返回200或404
-	assert.Contains(t, []int{http.StatusOK, http.StatusNotFound}, w.Code)
+	t.Run("更新邮箱", func(t *testing.T) {
+		updateData := `{"email":"newemail@test.com"}`
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/api/users/user-update-test", bytes.NewBufferString(updateData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		// 验证数据库已更新
+		var updatedUser models.User
+		db.First(&updatedUser, "id = ?", "user-update-test")
+		assert.Equal(t, "newemail@test.com", updatedUser.Email)
+	})
+
+	t.Run("更新用户名", func(t *testing.T) {
+		updateData := `{"username":"newusername"}`
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/api/users/user-update-test", bytes.NewBufferString(updateData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var updatedUser models.User
+		db.First(&updatedUser, "id = ?", "user-update-test")
+		assert.Equal(t, "newusername", updatedUser.Username)
+	})
+
+	t.Run("更新密码", func(t *testing.T) {
+		updateData := `{"password":"newpassword123"}`
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/api/users/user-update-test", bytes.NewBufferString(updateData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var updatedUser models.User
+		db.First(&updatedUser, "id = ?", "user-update-test")
+		assert.NotEqual(t, "hashed", updatedUser.HashedPassword)
+	})
+
+	t.Run("更新激活状态", func(t *testing.T) {
+		updateData := `{"is_active":false}`
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/api/users/user-update-test", bytes.NewBufferString(updateData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var updatedUser models.User
+		db.First(&updatedUser, "id = ?", "user-update-test")
+		assert.False(t, updatedUser.IsActive)
+	})
+
+	t.Run("更新多个字段", func(t *testing.T) {
+		updateData := `{"username":"multiupdate","email":"multi@test.com","is_active":true}`
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/api/users/user-update-test", bytes.NewBufferString(updateData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var updatedUser models.User
+		db.First(&updatedUser, "id = ?", "user-update-test")
+		assert.Equal(t, "multiupdate", updatedUser.Username)
+		assert.Equal(t, "multi@test.com", updatedUser.Email)
+		assert.True(t, updatedUser.IsActive)
+	})
+
+	t.Run("更新不存在的用户返回404", func(t *testing.T) {
+		updateData := `{"email":"test@test.com"}`
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/api/users/non-existent-user", bytes.NewBufferString(updateData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("无效JSON返回400", func(t *testing.T) {
+		updateData := `{invalid json}`
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/api/users/user-update-test", bytes.NewBufferString(updateData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
 }
 
 func TestDeleteUser(t *testing.T) {
