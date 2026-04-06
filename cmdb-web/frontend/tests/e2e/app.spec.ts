@@ -515,7 +515,24 @@ test.describe('CMDB 端到端测试', () => {
     await loginPage.login('admin', 'admin123')
     await loginPage.waitForLoginSuccess()
 
-    await ciDetailPage.goto('1')
+    // Full 模式：先通过 API 创建 CI，获取真实 ID
+    let ciId = '1'
+    if (isFullMode()) {
+      const token = await page.evaluate(() => {
+        const stored = localStorage.getItem('cmdb-user-storage')
+        if (stored) { const parsed = JSON.parse(stored); return parsed.state?.token }
+        return null
+      })
+      const ciName = 'App详情测试CI-' + Date.now()
+      const resp = await page.request.post('http://127.0.0.1:8000/api/ci', {
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        data: { name: ciName, type: 'server', ip: '10.0.1.200', project: '测试项目', environment: 'production' },
+      })
+      const respData = await resp.json()
+      ciId = String(respData.data.id)
+    }
+
+    await ciDetailPage.goto(ciId)
     await ciDetailPage.expectDetailVisible()
     await ciDetailPage.expectRelationsVisible()
   })
@@ -525,7 +542,24 @@ test.describe('CMDB 端到端测试', () => {
     await loginPage.login('admin', 'admin123')
     await loginPage.waitForLoginSuccess()
 
-    await ciDetailPage.goto('1')
+    // Full 模式：先通过 API 创建 CI，获取真实 ID
+    let ciId = '1'
+    if (isFullMode()) {
+      const token = await page.evaluate(() => {
+        const stored = localStorage.getItem('cmdb-user-storage')
+        if (stored) { const parsed = JSON.parse(stored); return parsed.state?.token }
+        return null
+      })
+      const ciName = 'App编辑测试CI-' + Date.now()
+      const resp = await page.request.post('http://127.0.0.1:8000/api/ci', {
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        data: { name: ciName, type: 'server', ip: '10.0.1.201', project: '测试项目', environment: 'production' },
+      })
+      const respData = await resp.json()
+      ciId = String(respData.data.id)
+    }
+
+    await ciDetailPage.goto(ciId)
     await ciDetailPage.clickEditButton()
     await ciEditPage.expectFormVisible()
     await ciEditPage.fillForm({ name: '测试服务器-01-编辑' })
@@ -538,7 +572,24 @@ test.describe('CMDB 端到端测试', () => {
     await loginPage.login('admin', 'admin123')
     await loginPage.waitForLoginSuccess()
 
-    await ciDetailPage.goto('1')
+    // Full 模式：先通过 API 创建 CI，获取真实 ID
+    let ciId = '1'
+    if (isFullMode()) {
+      const token = await page.evaluate(() => {
+        const stored = localStorage.getItem('cmdb-user-storage')
+        if (stored) { const parsed = JSON.parse(stored); return parsed.state?.token }
+        return null
+      })
+      const ciName = 'App删除测试CI-' + Date.now()
+      const resp = await page.request.post('http://127.0.0.1:8000/api/ci', {
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        data: { name: ciName, type: 'server', ip: '10.0.1.202', project: '测试项目', environment: 'production' },
+      })
+      const respData = await resp.json()
+      ciId = String(respData.data.id)
+    }
+
+    await ciDetailPage.goto(ciId)
     await ciDetailPage.clickDeleteButtonAndConfirm()
     await ciDetailPage.expectDeleteSuccess()
   })
