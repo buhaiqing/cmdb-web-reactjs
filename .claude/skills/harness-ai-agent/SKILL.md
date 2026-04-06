@@ -351,6 +351,7 @@ await selectElementOption('[data-testid="ci-form-type"]', 'server')
 - [实现指南](./IMPLEMENTATION_GUIDE.md) - 详细实现步骤和代码示例
 - [Python后端规范](./references/backend/python-standards.md)
 - [Go后端规范](./references/backend/golang-standards.md)
+- [Go + TypeScript 类型自动同步最佳实践](./references/backend/go-ts-typesync.md) - **推荐使用**
 - [Rust后端规范](./references/backend/rust-standards.md)
 - [前端规范](./references/frontend/engineering-standards.md)
 - [UI自动化测试规范](./references/frontend/ui-automation-standards.md) - **详细实现规范**
