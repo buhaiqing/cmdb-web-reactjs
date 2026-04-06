@@ -79,7 +79,7 @@ test.describe('变更管理测试', () => {
     })
 
     // 拦截创建变更 API（必须在列表拦截器之前，更具体的 URL 优先）
-    await page.route('**/api/change', async (route) => {
+    await page.route('**/api/changes', async (route) => {
       if (route.request().method() === 'POST') {
         const requestBody = JSON.parse(route.request().postData() || '{}')
         await route.fulfill({
@@ -102,7 +102,7 @@ test.describe('变更管理测试', () => {
     })
 
     // 拦截变更列表 API，返回 mock 数据
-    await page.route(/.*\/api\/change(\?.*)?$/, async (route) => {
+    await page.route(/.*\/api\/changes(\?.*)?$/, async (route) => {
       if (route.request().method() !== 'GET') {
         await route.fallback()
         return
@@ -128,9 +128,9 @@ test.describe('变更管理测试', () => {
     })
 
     // 拦截变更详情 API，返回 mock 数据
-    await page.route(/\/api\/change\/[^/]+$/, async (route) => {
+    await page.route(/\/api\/changes\/[^/]+$/, async (route) => {
       const url = route.request().url()
-      const match = url.match(/\/api\/change\/([^/]+)$/)
+      const match = url.match(/\/api\/changes\/([^/]+)$/)
       const id = match ? match[1] : 'unknown'
 
       // 根据ID返回不同状态（用于状态流转测试）

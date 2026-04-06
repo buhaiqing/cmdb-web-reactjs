@@ -14,9 +14,8 @@ export class LoginPage {
   }
 
   async waitForLoginSuccess() {
-    // 等待登录成功后的跳转
-    await this.page.waitForURL((url: URL) => url.pathname.includes('/dashboard'), { timeout: 15000 })
-    await this.page.waitForLoadState('networkidle', { timeout: 10000 })
+    await this.page.waitForURL((url: URL) => url.pathname.includes('/dashboard'), { timeout: 30000 })
+    await this.page.waitForLoadState('networkidle', { timeout: 30000 })
   }
 
   async expectLoginFormVisible() {

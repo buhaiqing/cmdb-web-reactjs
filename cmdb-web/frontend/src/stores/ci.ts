@@ -14,6 +14,7 @@ export interface CI {
   project?: string
   environment?: string
   tags?: string[]
+  description?: string
   createdAt: string
   updatedAt: string
 }

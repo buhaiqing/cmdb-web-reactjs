@@ -181,7 +181,7 @@ test-full:
 		exit 1; \
 	fi && \
 	echo "运行前端 E2E 测试（真实后端模式）..." && \
-	cd frontend && TEST_MODE=full npm run test:e2e -- --max-failures=3 && \
+	cd frontend && npm run test:e2e:full -- --max-failures=3 && \
 	echo "清理进程..." && \
 	kill $$BACKEND_PID 2>/dev/null || true && \
 	kill $$FRONTEND_PID 2>/dev/null || true && \

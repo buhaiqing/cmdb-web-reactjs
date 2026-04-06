@@ -81,6 +81,7 @@ export default function AppHeader() {
         zIndex: 1000,
         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       }}
+      data-testid="header-main"
     >
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <div
@@ -90,6 +91,7 @@ export default function AppHeader() {
             fontWeight: 'bold',
             marginRight: '40px',
           }}
+          data-testid="header-title"
         >
           CMDB 配置管理系统
         </div>
@@ -100,6 +102,7 @@ export default function AppHeader() {
           items={menuItems}
           style={{ flex: 1, minWidth: 400 }}
           onClick={({ key }) => router.push(key)}
+          data-testid="header-menu"
         />
       </div>
       <Space size="middle">
@@ -107,12 +110,14 @@ export default function AppHeader() {
           type="text"
           icon={<BellOutlined />}
           style={{ color: 'rgba(255,255,255,0.85)' }}
+          data-testid="button-header-notification"
         />
-        <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-          <Space style={{ cursor: 'pointer' }}>
+        <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" data-testid="dropdown-header-user">
+          <Space style={{ cursor: 'pointer' }} data-testid="header-user-menu">
             <Avatar
               style={{ backgroundColor: '#1890ff' }}
               icon={<UserOutlined />}
+              data-testid="header-avatar"
             />
             <span style={{ color: 'white' }} data-testid="header-username">{user?.username || 'Admin'}</span>
           </Space>

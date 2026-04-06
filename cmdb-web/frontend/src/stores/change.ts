@@ -52,7 +52,7 @@ export const useChangeStore = create<ChangeState>((set, get) => ({
       const currentPage = state.pagination.current
       const pageSize = state.pagination.pageSize
       const filters = state.filters
-      const response = await api.get('/change', {
+      const response = await api.get('/changes', {
         params: {
           page: params?.page || currentPage,
           pageSize: params?.pageSize || pageSize,
@@ -74,7 +74,7 @@ export const useChangeStore = create<ChangeState>((set, get) => ({
   fetchChangeDetail: async (id: string) => {
     set({ isLoading: true })
     try {
-      const response = await api.get(`/change/${id}`)
+      const response = await api.get(`/changes/${id}`)
       set({ currentChange: response.data.data, isLoading: false })
     } catch (error) {
       set({ isLoading: false })
@@ -85,7 +85,7 @@ export const useChangeStore = create<ChangeState>((set, get) => ({
   createChange: async (data: Partial<Change>) => {
     set({ isLoading: true })
     try {
-      await api.post('/change', data)
+      await api.post('/changes', data)
       set({ isLoading: false })
       await get().fetchChangeList()
       return true
@@ -99,7 +99,7 @@ export const useChangeStore = create<ChangeState>((set, get) => ({
   approveChange: async (id: string) => {
     set({ isLoading: true })
     try {
-      await api.post(`/change/${id}/approve`)
+      await api.post(`/changes/${id}/approve`)
       set({ isLoading: false })
       await get().fetchChangeDetail(id)
       return true
@@ -113,7 +113,7 @@ export const useChangeStore = create<ChangeState>((set, get) => ({
   rejectChange: async (id: string) => {
     set({ isLoading: true })
     try {
-      await api.post(`/change/${id}/reject`)
+      await api.post(`/changes/${id}/reject`)
       set({ isLoading: false })
       await get().fetchChangeDetail(id)
       return true

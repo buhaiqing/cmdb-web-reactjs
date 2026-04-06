@@ -42,7 +42,7 @@ export default function DashboardPage() {
     try {
       const [statsRes, changesRes] = await Promise.all([
         api.get('/dashboard/stats'),
-        api.get('/change/recent'),
+        api.get('/changes/recent'),
       ])
       setStats(statsRes.data.data || { server: 128, database: 45, middleware: 32, container: 156, changePending: 7 })
       setRecentChanges(changesRes.data.data || [

@@ -28,6 +28,17 @@ export const api = axios.create({
   timeout: 30000,
 })
 
+api.interceptors.request.use(
+  (config) => {
+    const token = Cookies.get('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
 const mockLogin = async (username: string, password: string): Promise<{ token: string; user: User } | null> => {
   if (username === 'admin' && password === 'admin123') {
     return {

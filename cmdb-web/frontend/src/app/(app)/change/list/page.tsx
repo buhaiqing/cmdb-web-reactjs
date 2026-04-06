@@ -71,7 +71,7 @@ export default function ChangeListPage() {
           completed: '已完成',
           rejected: '已拒绝',
         }
-        return <Tag color={colorMap[status]}>{labelMap[status]}</Tag>
+        return <Tag color={colorMap[status]} data-testid={`cell-change-status-${status}`}>{labelMap[status]}</Tag>
       },
     },
     {

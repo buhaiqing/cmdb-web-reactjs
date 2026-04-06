@@ -77,6 +77,50 @@ test.describe('CMDB 端到端测试', () => {
         return
       }
 
+      // Dashboard Stats API
+      if (url.includes('/api/dashboard/stats')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: {
+              totalCIs: 156,
+              activeCIs: 142,
+              pendingChanges: 8,
+              completedChanges: 23,
+            },
+          }),
+        })
+        return
+      }
+
+      // Recent Changes API
+      if (url.includes('/api/changes/recent')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: '1',
+                title: '数据库配置优化',
+                status: 'pending',
+                createdAt: '2024-01-15 10:30',
+              },
+              {
+                id: '2',
+                title: '应用服务重启',
+                status: 'approved',
+                createdAt: '2024-01-15 09:15',
+              },
+            ],
+          }),
+        })
+        return
+      }
+
       // CI 列表 API
       if (url.includes('/api/ci') && route.request().method() === 'GET' && !url.includes('/api/ci/')) {
         await route.fulfill({
@@ -212,7 +256,7 @@ test.describe('CMDB 端到端测试', () => {
       }
 
       // 变更列表 API
-      if (url.includes('/api/change') && route.request().method() === 'GET' && !url.match(/\/api\/change\/[^/]+/)) {
+      if (url.includes('/api/changes') && route.request().method() === 'GET' && !url.match(/\/api\/changes\/[^/]+/)) {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -258,7 +302,7 @@ test.describe('CMDB 端到端测试', () => {
       }
 
       // 创建变更请求 API
-      if (url.includes('/api/change') && route.request().method() === 'POST') {
+      if (url.includes('/api/changes') && route.request().method() === 'POST') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -276,7 +320,7 @@ test.describe('CMDB 端到端测试', () => {
       }
 
       // 变更详情 API
-      const changeDetailMatch = url.match(/\/api\/change\/([^/]+)$/)
+      const changeDetailMatch = url.match(/\/api\/changes\/([^/]+)$/)
       if (changeDetailMatch && route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,

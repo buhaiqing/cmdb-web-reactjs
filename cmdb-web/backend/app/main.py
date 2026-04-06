@@ -1,6 +1,6 @@
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.api.routes import auth, users, roles, ci, audit, changes, dashboard
+from app.api.routes import auth, users, roles, ci, audit, changes, dashboard, relations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,6 +22,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["认证"])
 app.include_router(users.router, prefix="/api/users", tags=["用户管理"])
 app.include_router(roles.router, prefix="/api/roles", tags=["角色管理"])
 app.include_router(ci.router, prefix="/api/ci", tags=["配置项管理"])
+app.include_router(relations.router, prefix="/api/relations", tags=["关系管理"])
 app.include_router(audit.router, prefix="/api/audit", tags=["审计日志"])
 app.include_router(changes.router, prefix="/api/changes", tags=["变更管理"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["仪表板"])

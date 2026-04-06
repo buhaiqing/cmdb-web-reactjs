@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "cmdb-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001"]
     PGDATA_DIR: str = "./pgdata"
 
     class Config:

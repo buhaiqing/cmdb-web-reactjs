@@ -167,21 +167,21 @@ export default function CIDetailPage() {
               <Descriptions column={2} bordered>
                 <Descriptions.Item label="名称"><span data-testid="ci-detail-name">{ci.name}</span></Descriptions.Item>
                 <Descriptions.Item label="类型">
-                  <span data-testid="ci-detail-type"><Tag>{ciTypeOptions[ci.type] || ci.type}</Tag></span>
+                  <span data-testid="ci-detail-type"><Tag data-testid={`ci-detail-type-tag-${ci.type}`}>{ciTypeOptions[ci.type] || ci.type}</Tag></span>
                 </Descriptions.Item>
                 <Descriptions.Item label="状态">
-                  <span data-testid="ci-detail-status"><Tag color={ciStatusOptions[ci.status]?.color}>
+                  <span data-testid="ci-detail-status"><Tag color={ciStatusOptions[ci.status]?.color} data-testid={`ci-detail-status-tag-${ci.status}`}>
                     {ciStatusOptions[ci.status]?.label || ci.status}
                   </Tag></span>
                 </Descriptions.Item>
                 <Descriptions.Item label="IP地址"><span data-testid="ci-detail-ip">{ci.ip || '-'}</span></Descriptions.Item>
-                <Descriptions.Item label="CPU">{ci.cpu || '-'}</Descriptions.Item>
-                <Descriptions.Item label="内存">{ci.memory || '-'}</Descriptions.Item>
-                <Descriptions.Item label="磁盘">{ci.disk || '-'}</Descriptions.Item>
-                <Descriptions.Item label="操作系统">{ci.os || '-'}</Descriptions.Item>
-                <Descriptions.Item label="项目">{ci.project || '-'}</Descriptions.Item>
+                <Descriptions.Item label="CPU"><span data-testid="ci-detail-cpu">{ci.cpu || '-'}</span></Descriptions.Item>
+                <Descriptions.Item label="内存"><span data-testid="ci-detail-memory">{ci.memory || '-'}</span></Descriptions.Item>
+                <Descriptions.Item label="磁盘"><span data-testid="ci-detail-disk">{ci.disk || '-'}</span></Descriptions.Item>
+                <Descriptions.Item label="操作系统"><span data-testid="ci-detail-os">{ci.os || '-'}</span></Descriptions.Item>
+                <Descriptions.Item label="项目"><span data-testid="ci-detail-project">{ci.project || '-'}</span></Descriptions.Item>
                 <Descriptions.Item label="环境">
-                  {ci.environment && <Tag color={ci.environment === 'production' ? 'red' : ci.environment === 'staging' ? 'blue' : 'green'}>{ci.environment}</Tag>}
+                  {ci.environment && <Tag color={ci.environment === 'production' ? 'red' : ci.environment === 'staging' ? 'blue' : 'green'} data-testid={`ci-detail-environment-tag-${ci.environment}`}>{ci.environment}</Tag>}
                 </Descriptions.Item>
               </Descriptions>
             </Card>
@@ -189,8 +189,8 @@ export default function CIDetailPage() {
           <Col span={8}>
             <Card title="变更信息" data-testid="card-ci-change">
               <Descriptions column={1} size="small">
-                <Descriptions.Item label="创建时间">{ci.createdAt}</Descriptions.Item>
-                <Descriptions.Item label="更新时间">{ci.updatedAt}</Descriptions.Item>
+                <Descriptions.Item label="创建时间"><span data-testid="ci-detail-created-at">{ci.createdAt}</span></Descriptions.Item>
+                <Descriptions.Item label="更新时间"><span data-testid="ci-detail-updated-at">{ci.updatedAt}</span></Descriptions.Item>
               </Descriptions>
             </Card>
           </Col>

@@ -131,6 +131,7 @@ export default function AppSidebar() {
         boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
         overflow: 'auto',
       }}
+      data-testid="sidebar-main"
     >
       <div
         style={{
@@ -141,10 +142,11 @@ export default function AppSidebar() {
           padding: collapsed ? 0 : '0 24px',
           borderBottom: '1px solid #f0f0f0',
         }}
+        data-testid="sidebar-logo"
       >
-        <TeamOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+        <TeamOutlined style={{ fontSize: 24, color: '#1890ff' }} data-testid="sidebar-logo-icon" />
         {!collapsed && (
-          <span style={{ marginLeft: 12, fontSize: 16, fontWeight: 'bold' }}>
+          <span style={{ marginLeft: 12, fontSize: 16, fontWeight: 'bold' }} data-testid="sidebar-logo-text">
             CMDB
           </span>
         )}
@@ -158,6 +160,7 @@ export default function AppSidebar() {
         items={convertMenuItems(menuList)}
         onClick={handleMenuClick}
         style={{ borderRight: 0 }}
+        data-testid="sidebar-menu"
       />
     </Sider>
   )
