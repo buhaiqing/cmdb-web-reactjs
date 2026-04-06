@@ -9,6 +9,7 @@ import (
 	"cmdb-go/internal/database"
 	"cmdb-go/internal/models"
 	"cmdb-go/internal/routes"
+	"cmdb-go/internal/seed"
 )
 
 func main() {
@@ -37,11 +38,30 @@ func main() {
 
 	log.Println("Database migration completed")
 
+	// 初始化默认数据（管理员用户和角色）
+	seed.InitDefaultData()
+
 	// 设置 Gin 模式
 	gin.SetMode(gin.DebugMode)
 
 	// 创建 Gin 引擎
 	r := gin.Default()
+
+	// 配置 CORS 中间件
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
+
+		// 处理 OPTIONS 预检请求
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	})
 
 	// 设置路由
 	routes.SetupRoutes(r)

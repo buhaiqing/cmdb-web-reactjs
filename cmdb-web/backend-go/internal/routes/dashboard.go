@@ -41,3 +41,31 @@ func GetDashboard(c *gin.Context) {
 		},
 	})
 }
+
+// GetDashboardStats 获取仪表板统计数据（前端期望的端点）
+func GetDashboardStats(c *gin.Context) {
+	db := database.GetDB()
+
+	// 按类型统计 CI
+	var serverCount, databaseCount, middlewareCount, containerCount int64
+	db.Model(&models.CI{}).Where("type = ?", "server").Count(&serverCount)
+	db.Model(&models.CI{}).Where("type = ?", "database").Count(&databaseCount)
+	db.Model(&models.CI{}).Where("type = ?", "middleware").Count(&middlewareCount)
+	db.Model(&models.CI{}).Where("type = ?", "container").Count(&containerCount)
+
+	// 待审批的变更数量
+	var changePending int64
+	db.Model(&models.ChangeRequest{}).Where("status = ?", "pending").Count(&changePending)
+
+	c.JSON(http.StatusOK, schemas.BaseResponse{
+		Success: true,
+		Message: "ok",
+		Data: gin.H{
+			"server":        serverCount,
+			"database":      databaseCount,
+			"middleware":    middlewareCount,
+			"container":     containerCount,
+			"changePending": changePending,
+		},
+	})
+}

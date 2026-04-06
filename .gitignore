@@ -212,3 +212,6 @@ dist/
 playwright-report/
 .omc/
 .vscode/
+
+cmdb.db-shm 
+cmdb.db-wal

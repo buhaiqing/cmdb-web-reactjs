@@ -60,11 +60,21 @@ func SetupRoutes(r *gin.Engine) {
 			relations.DELETE("/:id", DeleteRelation)
 		}
 
+		// 仪表板路由
+		dashboard := api.Group("/dashboard", middleware.AuthMiddleware())
+		{
+			dashboard.GET("", GetDashboard)
+			dashboard.GET("/stats", GetDashboardStats)
+		}
+
 		// 变更路由
 		changes := api.Group("/changes", middleware.AuthMiddleware())
 		{
 			changes.GET("", ListChanges)
 			changes.POST("", CreateChange)
+			changes.GET("/recent", GetRecentChanges)    // 必须在 :id 之前
+			changes.POST("/:id/approve", ApproveChange) // 必须在 :id 之前
+			changes.POST("/:id/reject", RejectChange)   // 必须在 :id 之前
 			changes.GET("/:id", GetChange)
 			changes.PUT("/:id", UpdateChange)
 			changes.DELETE("/:id", DeleteChange)
@@ -74,12 +84,6 @@ func SetupRoutes(r *gin.Engine) {
 		audit := api.Group("/audit", middleware.AuthMiddleware())
 		{
 			audit.GET("", ListAuditLogs)
-		}
-
-		// 仪表板路由
-		dashboard := api.Group("/dashboard", middleware.AuthMiddleware())
-		{
-			dashboard.GET("", GetDashboard)
 		}
 	}
 

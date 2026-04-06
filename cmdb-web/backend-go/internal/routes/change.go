@@ -322,3 +322,142 @@ func DeleteChange(c *gin.Context) {
 		Message: "变更删除成功",
 	})
 }
+
+// GetRecentChanges 获取最近的变更列表（前端期望的端点）
+func GetRecentChanges(c *gin.Context) {
+	db := database.GetDB()
+
+	// 获取最近的5条变更记录
+	var changes []models.ChangeRequest
+	db.Preload("CI").Order("created_at DESC").Limit(5).Find(&changes)
+
+	// 转换为响应格式
+	changeList := make([]gin.H, len(changes))
+	for i, ch := range changes {
+		ciName := ""
+		if ch.CI.ID != "" {
+			ciName = ch.CI.Name
+		}
+
+		changeList[i] = gin.H{
+			"id":         ch.ID,
+			"ciName":     ciName,
+			"changeType": ch.Reason,
+			"operator":   ch.RequesterID,
+			"createdAt":  ch.CreatedAt.Format("2006-01-02 15:04:05"),
+			"status":     ch.Status,
+		}
+	}
+
+	c.JSON(http.StatusOK, schemas.BaseResponse{
+		Success: true,
+		Message: "ok",
+		Data:    changeList,
+	})
+}
+
+// ApproveChange 批准变更（前端期望的端点）
+func ApproveChange(c *gin.Context) {
+	changeID := c.Param("id")
+
+	// 获取当前用户
+	userID, username, ok := getUserFromContext(c)
+	if !ok {
+		return
+	}
+
+	db := database.GetDB()
+	var change models.ChangeRequest
+	if err := db.First(&change, "id = ?", changeID).Error; err != nil {
+		c.JSON(http.StatusNotFound, schemas.BaseResponse{
+			Success: false,
+			Message: "变更不存在",
+		})
+		return
+	}
+
+	// 更新状态为已批准
+	change.Status = "approved"
+	change.ApproverID = &userID
+
+	tx := db.Begin()
+	if err := tx.Save(&change).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, schemas.BaseResponse{
+			Success: false,
+			Message: "批准变更失败",
+		})
+		return
+	}
+
+	// 记录审计日志
+	audit := models.AuditLog{
+		ID:           uuid.New().String(),
+		UserID:       userID,
+		Username:     username,
+		Action:       "approve",
+		ResourceType: "change",
+		ResourceID:   change.ID,
+		ResourceName: change.Title,
+	}
+	tx.Create(&audit)
+	tx.Commit()
+
+	c.JSON(http.StatusOK, schemas.BaseResponse{
+		Success: true,
+		Message: "变更已批准",
+	})
+}
+
+// RejectChange 拒绝变更（前端期望的端点）
+func RejectChange(c *gin.Context) {
+	changeID := c.Param("id")
+
+	// 获取当前用户
+	userID, username, ok := getUserFromContext(c)
+	if !ok {
+		return
+	}
+
+	db := database.GetDB()
+	var change models.ChangeRequest
+	if err := db.First(&change, "id = ?", changeID).Error; err != nil {
+		c.JSON(http.StatusNotFound, schemas.BaseResponse{
+			Success: false,
+			Message: "变更不存在",
+		})
+		return
+	}
+
+	// 更新状态为已拒绝
+	change.Status = "rejected"
+	change.ApproverID = &userID
+
+	tx := db.Begin()
+	if err := tx.Save(&change).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, schemas.BaseResponse{
+			Success: false,
+			Message: "拒绝变更失败",
+		})
+		return
+	}
+
+	// 记录审计日志
+	audit := models.AuditLog{
+		ID:           uuid.New().String(),
+		UserID:       userID,
+		Username:     username,
+		Action:       "reject",
+		ResourceType: "change",
+		ResourceID:   change.ID,
+		ResourceName: change.Title,
+	}
+	tx.Create(&audit)
+	tx.Commit()
+
+	c.JSON(http.StatusOK, schemas.BaseResponse{
+		Success: true,
+		Message: "变更已拒绝",
+	})
+}

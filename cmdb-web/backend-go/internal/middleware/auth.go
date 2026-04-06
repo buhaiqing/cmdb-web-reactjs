@@ -2,12 +2,41 @@ package middleware
 
 import (
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"cmdb-go/internal/security"
 )
+
+// getAllowedOrigins 从环境变量获取允许的 CORS Origins
+func getAllowedOrigins() map[string]bool {
+	origins := map[string]bool{
+		// 默认允许的开发环境
+		"http://localhost:3000": true,
+		"http://localhost:3001": true,
+		"http://localhost:3002": true,
+		"http://127.0.0.1:3000": true,
+		"http://127.0.0.1:3001": true,
+		"http://127.0.0.1:3002": true,
+	}
+
+	// 从环境变量读取额外的允许 Origins
+	if extraOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); extraOrigins != "" {
+		for _, origin := range strings.Split(extraOrigins, ",") {
+			origin = strings.TrimSpace(origin)
+			if origin != "" {
+				origins[origin] = true
+			}
+		}
+	}
+
+	return origins
+}
+
+// 允许的 CORS Origins（开发环境）
+var allowedOrigins = getAllowedOrigins()
 
 // AuthMiddleware JWT 认证中间件
 func AuthMiddleware() gin.HandlerFunc {
@@ -58,10 +87,20 @@ func AuthMiddleware() gin.HandlerFunc {
 // CORSMiddleware CORS 跨域中间件
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		origin := c.GetHeader("Origin")
+
+		// 检查是否在允许的 Origin 列表中
+		if allowedOrigins[origin] {
+			c.Header("Access-Control-Allow-Origin", origin)
+		} else if origin != "" {
+			// 对于其他非空 Origin，使用通配符（生产环境应配置具体域名）
+			c.Header("Access-Control-Allow-Origin", "*")
+		}
+
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
 		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Max-Age", "86400")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
