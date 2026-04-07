@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Table, Card, Space, Button } from 'antd'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
+import { api } from '@/stores/user'
 
 interface User {
   id: string
@@ -15,7 +16,9 @@ interface User {
 }
 
 export default function UserManagePage() {
-  const [loading] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 })
 
   const columns: ColumnsType<User> = [
     {
@@ -73,11 +76,32 @@ export default function UserManagePage() {
     },
   ]
 
-  const mockData: User[] = [
-    { id: '1', username: 'admin', email: 'admin@example.com', role: 'admin', status: 'active', createdAt: '2024-01-01 00:00:00' },
-    { id: '2', username: 'operator', email: 'operator@example.com', role: 'operator', status: 'active', createdAt: '2024-01-05 10:00:00' },
-    { id: '3', username: 'readonly', email: 'readonly@example.com', role: 'readonly', status: 'active', createdAt: '2024-01-10 14:30:00' },
-  ]
+  const loadUsers = async (page = pagination.current, pageSize = pagination.pageSize) => {
+    setLoading(true)
+    try {
+      const response = await api.get('/users', { params: { page, pageSize } })
+      const list = response.data?.data || []
+      const total = response.data?.total || 0
+      setUsers(
+        list.map((item: any) => ({
+          id: item.id,
+          username: item.username,
+          email: item.email,
+          role: item.role?.code || '',
+          status: item.is_active ? 'active' : 'inactive',
+          createdAt: item.created_at || item.createdAt || '',
+        }))
+      )
+      setPagination({ current: page, pageSize, total })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadUsers()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="page-user-manage" data-testid="page-user-manage">
@@ -87,7 +111,7 @@ export default function UserManagePage() {
           <Button type="primary" icon={<PlusOutlined />} data-testid="button-user-create">
             创建用户
           </Button>
-          <Button icon={<ReloadOutlined />} data-testid="button-user-refresh">
+          <Button icon={<ReloadOutlined />} onClick={() => loadUsers()} loading={loading} data-testid="button-user-refresh">
             刷新
           </Button>
         </Space>
@@ -96,15 +120,16 @@ export default function UserManagePage() {
       <Card data-testid="card-user-table">
         <Table
           columns={columns}
-          dataSource={mockData}
+          dataSource={users}
           rowKey="id"
           loading={loading}
           pagination={{
-            current: 1,
-            pageSize: 20,
-            total: 3,
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
             showSizeChanger: true,
             showTotal: (total) => `共 ${total} 条`,
+            onChange: (page, pageSize) => loadUsers(page, pageSize),
           }}
           data-testid="table-user-list"
         />

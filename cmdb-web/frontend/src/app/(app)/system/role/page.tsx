@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Table, Card, Space, Button } from 'antd'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
+import { api } from '@/stores/user'
 
 interface Role {
   id: string
@@ -15,7 +16,9 @@ interface Role {
 }
 
 export default function RoleManagePage() {
-  const [loading] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [roles, setRoles] = useState<Role[]>([])
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 })
 
   const columns: ColumnsType<Role> = [
     {
@@ -64,12 +67,44 @@ export default function RoleManagePage() {
     },
   ]
 
-  const mockData: Role[] = [
-    { id: '1', name: '系统管理员', code: 'admin', description: '完整系统配置和管理权限', userCount: 2, createdAt: '2024-01-01 00:00:00' },
-    { id: '2', name: '运维工程师', code: 'operator', description: '配置项 CRUD、变更执行权限', userCount: 5, createdAt: '2024-01-01 00:00:00' },
-    { id: '3', name: '只读用户', code: 'readonly', description: '仅查看和搜索权限', userCount: 10, createdAt: '2024-01-01 00:00:00' },
-    { id: '4', name: '审计员', code: 'auditor', description: '查看审计日志和变更历史权限', userCount: 3, createdAt: '2024-01-01 00:00:00' },
-  ]
+  const loadRoles = async (page = pagination.current, pageSize = pagination.pageSize) => {
+    setLoading(true)
+    try {
+      const [roleResp, userResp] = await Promise.all([
+        api.get('/roles', { params: { page, pageSize } }),
+        api.get('/users', { params: { page: 1, pageSize: 500 } }),
+      ])
+
+      const roleList = roleResp.data?.data || []
+      const total = roleResp.data?.total || 0
+      const userList = userResp.data?.data || []
+      const userCountMap = new Map<string, number>()
+      userList.forEach((user: any) => {
+        const roleId = user.role_id
+        if (!roleId) return
+        userCountMap.set(roleId, (userCountMap.get(roleId) || 0) + 1)
+      })
+
+      setRoles(
+        roleList.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          code: item.code,
+          description: item.description || '-',
+          userCount: userCountMap.get(item.id) || 0,
+          createdAt: item.created_at || item.createdAt || '',
+        }))
+      )
+      setPagination({ current: page, pageSize, total })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadRoles()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="page-role-manage" data-testid="page-role-manage">
@@ -79,7 +114,7 @@ export default function RoleManagePage() {
           <Button type="primary" icon={<PlusOutlined />} data-testid="button-role-create">
             创建角色
           </Button>
-          <Button icon={<ReloadOutlined />} data-testid="button-role-refresh">
+          <Button icon={<ReloadOutlined />} onClick={() => loadRoles()} loading={loading} data-testid="button-role-refresh">
             刷新
           </Button>
         </Space>
@@ -88,15 +123,16 @@ export default function RoleManagePage() {
       <Card data-testid="card-role-table">
         <Table
           columns={columns}
-          dataSource={mockData}
+          dataSource={roles}
           rowKey="id"
           loading={loading}
           pagination={{
-            current: 1,
-            pageSize: 20,
-            total: 4,
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
             showSizeChanger: true,
             showTotal: (total) => `共 ${total} 条`,
+            onChange: (page, pageSize) => loadRoles(page, pageSize),
           }}
           data-testid="table-role-list"
         />

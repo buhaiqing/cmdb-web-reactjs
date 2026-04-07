@@ -323,11 +323,74 @@ export const setupAuditMocks = async (page: Page) => {
         success: true,
         data: {
           items: [
-            { id: '1', action: 'create', resourceType: 'ci', resourceName: 'DB-主库-01', username: 'admin', createdAt: '2024-01-15 10:30' },
-            { id: '2', action: 'update', resourceType: 'ci', resourceName: 'APP-订单服务', username: 'admin', createdAt: '2024-01-15 09:15' },
+            { id: '1', action: 'create', resource_type: 'ci', resource_name: 'DB-主库-01', username: 'admin', user_id: '1', resource_id: 'ci-1', created_at: '2024-01-15 10:30:00' },
+            { id: '2', action: 'update', resource_type: 'ci', resource_name: 'APP-订单服务', username: 'admin', user_id: '1', resource_id: 'ci-2', created_at: '2024-01-15 09:15:00' },
           ],
           total: 2,
         },
+      }),
+    })
+  })
+}
+
+// 通用的 User/Role Mock 设置
+export const setupUserRoleMocks = async (page: Page) => {
+  if (isFullMode()) return
+
+  await page.route('**/api/users*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: [
+          {
+            id: '1',
+            username: 'admin',
+            email: 'admin@example.com',
+            role_id: 'r-admin',
+            role: { id: 'r-admin', code: 'admin', name: '系统管理员' },
+            is_active: true,
+            created_at: '2024-01-01 00:00:00',
+          },
+          {
+            id: '2',
+            username: 'operator',
+            email: 'operator@example.com',
+            role_id: 'r-operator',
+            role: { id: 'r-operator', code: 'operator', name: '运维工程师' },
+            is_active: true,
+            created_at: '2024-01-05 10:00:00',
+          },
+        ],
+        total: 2,
+      }),
+    })
+  })
+
+  await page.route('**/api/roles*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: [
+          {
+            id: 'r-admin',
+            name: '系统管理员',
+            code: 'admin',
+            description: '完整系统配置和管理权限',
+            created_at: '2024-01-01 00:00:00',
+          },
+          {
+            id: 'r-operator',
+            name: '运维工程师',
+            code: 'operator',
+            description: '配置项 CRUD、变更执行权限',
+            created_at: '2024-01-01 00:00:00',
+          },
+        ],
+        total: 2,
       }),
     })
   })
@@ -341,6 +404,7 @@ export const setupCommonMocks = async (page: Page) => {
   await setupCITypesMocks(page)
   await setupNotificationsMocks(page)
   await setupAuditMocks(page)
+  await setupUserRoleMocks(page)
 }
 
 // Full 模式下的 Fallback Mocks（仅用于前后端字段不匹配的 API 端点）

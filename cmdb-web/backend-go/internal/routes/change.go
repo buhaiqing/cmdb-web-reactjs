@@ -22,6 +22,9 @@ func ListChanges(c *gin.Context) {
 	if ps := c.Query("pageSize"); ps != "" {
 		pageSize, _ = strconv.Atoi(ps)
 	}
+	if ps := c.Query("page_size"); ps != "" {
+		pageSize, _ = strconv.Atoi(ps)
+	}
 
 	status := c.Query("status")
 	changeType := c.Query("type")
@@ -47,22 +50,30 @@ func ListChanges(c *gin.Context) {
 
 	// 分页和排序
 	var changes []models.ChangeRequest
-	query.Offset((page - 1) * pageSize).Limit(pageSize).Order("created_at DESC").Find(&changes)
+	query.Preload("CI").Offset((page-1)*pageSize).Limit(pageSize).Order("created_at DESC").Find(&changes)
 
 	// 转换为响应格式
 	changeList := make([]gin.H, len(changes))
 	for i, ch := range changes {
+		ciName := ""
+		if ch.CI.ID != "" {
+			ciName = ch.CI.Name
+		}
 		changeList[i] = gin.H{
 			"id":           ch.ID,
+			"ciName":       ciName,
 			"title":        ch.Title,
+			"changeType":   ch.Reason,
 			"description":  ch.Description,
 			"ci_id":        ch.CIID,
 			"reason":       ch.Reason,
 			"plan":         ch.Plan,
 			"status":       ch.Status,
 			"priority":     ch.Priority,
+			"operator":     ch.RequesterID,
 			"requester_id": ch.RequesterID,
 			"approver_id":  ch.ApproverID,
+			"approvedBy":   ch.ApproverID,
 			"createdAt":    ch.CreatedAt.Format("2006-01-02 15:04:05"),
 			"updatedAt":    ch.UpdatedAt.Format("2006-01-02 15:04:05"),
 		}

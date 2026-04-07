@@ -6,7 +6,7 @@
       "localStorage": [
         {
           "name": "cmdb-user-storage",
-          "value": "{\"state\":{\"user\":{\"id\":\"admin-id\",\"username\":\"admin\",\"email\":\"admin@example.com\",\"role\":\"admin\",\"permissions\":[\"[\\\"*\\\"]\"]},\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzYxODI1MTIsInJvbGUiOiJhZG1pbiIsInN1YiI6ImFkbWluLWlkIiwidXNlcm5hbWUiOiJhZG1pbiJ9.8EakpU78ZLN5579rEaoC2sb1rzzN9BkPStAQaCkHoSY\",\"isLoggedIn\":true,\"isLoading\":false,\"isHydrated\":true},\"version\":0}"
+          "value": "{\"state\":{\"user\":{\"id\":\"admin-id\",\"username\":\"admin\",\"email\":\"admin@example.com\",\"role\":\"admin\",\"permissions\":[\"[\\\"*\\\"]\"]},\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzYxODQzMDUsInJvbGUiOiJhZG1pbiIsInN1YiI6ImFkbWluLWlkIiwidXNlcm5hbWUiOiJhZG1pbiJ9.8PGSGyu9FITf1wb8Iui5D4M_pvLL2f1yQiTRkQfBjbM\",\"isLoggedIn\":true,\"isLoading\":false,\"isHydrated\":true},\"version\":0}"
         }
       ]
     }

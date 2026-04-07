@@ -5,6 +5,7 @@ import { Table, Card, Space, Button, Input, Select, DatePicker, Tag, Tooltip, Dr
 import { SearchOutlined, ReloadOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
+import { api } from '@/stores/user'
 
 const { RangePicker } = DatePicker
 
@@ -47,49 +48,9 @@ const resourceTypeMap: Record<string, string> = {
   system: '系统',
 }
 
-// 生成模拟审计日志数据
-const generateMockData = (): AuditLog[] => {
-  const actions = Object.keys(actionMap)
-  const resourceTypes = Object.keys(resourceTypeMap)
-  const users = ['admin', 'operator', 'viewer', 'manager']
-  const ips = ['192.168.1.100', '192.168.1.101', '10.0.0.50', '172.16.0.20']
-  
-  const data: AuditLog[] = []
-  const now = dayjs()
-  
-  for (let i = 0; i < 50; i++) {
-    const action = actions[Math.floor(Math.random() * actions.length)]
-    const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)]
-    const user = users[Math.floor(Math.random() * users.length)]
-    const ip = ips[Math.floor(Math.random() * ips.length)]
-    const status = Math.random() > 0.1 ? 'success' : 'failed'
-    
-    data.push({
-      id: `audit-${i + 1}`,
-      user,
-      userId: `user-${Math.floor(Math.random() * 100)}`,
-      action,
-      actionName: actionMap[action]?.label || action,
-      resource: `${resourceTypeMap[resourceType]}-${Math.floor(Math.random() * 1000)}`,
-      resourceType: resourceTypeMap[resourceType],
-      resourceId: `res-${Math.floor(Math.random() * 10000)}`,
-      ip,
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      createdAt: now.subtract(Math.floor(Math.random() * 30), 'day').format('YYYY-MM-DD HH:mm:ss'),
-      status,
-      details: status === 'failed' ? '操作失败：权限不足' : undefined,
-      oldValue: action === 'update' ? '{"name": "旧名称"}' : undefined,
-      newValue: action === 'update' ? '{"name": "新名称"}' : undefined,
-    })
-  }
-  
-  return data.sort((a, b) => dayjs(b.createdAt).unix() - dayjs(a.createdAt).unix())
-}
-
 export default function AuditLogPage() {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<AuditLog[]>([])
-  const [filteredData, setFilteredData] = useState<AuditLog[]>([])
   const [searchText, setSearchText] = useState('')
   const [actionFilter, setActionFilter] = useState<string>()
   const [statusFilter, setStatusFilter] = useState<string>()
@@ -99,51 +60,57 @@ export default function AuditLogPage() {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 })
 
   // 加载数据
-  const loadData = () => {
+  const loadData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true)
-    setTimeout(() => {
-      const mockData = generateMockData()
-      setData(mockData)
-      setFilteredData(mockData)
-      setPagination(prev => ({ ...prev, total: mockData.length }))
+    try {
+      const response = await api.get('/audit', {
+        params: {
+          page,
+          pageSize,
+          keyword: searchText || undefined,
+          action: actionFilter || undefined,
+          status: statusFilter || undefined,
+          start_time: dateRange?.[0]?.format('YYYY-MM-DD HH:mm:ss'),
+          end_time: dateRange?.[1]?.format('YYYY-MM-DD HH:mm:ss'),
+        },
+      })
+
+      const result = response.data?.data || {}
+      const items = result.items || []
+      const total = result.total || 0
+      setData(
+        items.map((item: any) => ({
+          id: item.id,
+          user: item.username || '-',
+          userId: item.user_id || '-',
+          action: item.action,
+          actionName: actionMap[item.action]?.label || item.action,
+          resource: item.resource_name || '-',
+          resourceType: resourceTypeMap[item.resource_type] || item.resource_type,
+          resourceId: item.resource_id || '-',
+          ip: item.ip || '-',
+          userAgent: item.user_agent || '-',
+          createdAt: item.created_at || item.createdAt || '',
+          status: item.status === 'failed' ? 'failed' : 'success',
+          details: item.details,
+          oldValue: item.old_value,
+          newValue: item.new_value,
+        }))
+      )
+      setPagination({ current: page, pageSize, total })
+    } finally {
       setLoading(false)
-    }, 500)
+    }
   }
 
   useEffect(() => {
     loadData()
   }, [])
 
-  // 筛选数据
   useEffect(() => {
-    let result = [...data]
-    
-    if (searchText) {
-      result = result.filter(item => 
-        item.user.includes(searchText) || 
-        item.resource.includes(searchText) ||
-        item.ip.includes(searchText)
-      )
-    }
-    
-    if (actionFilter) {
-      result = result.filter(item => item.action === actionFilter)
-    }
-    
-    if (statusFilter) {
-      result = result.filter(item => item.status === statusFilter)
-    }
-    
-    if (dateRange) {
-      result = result.filter(item => {
-        const itemDate = dayjs(item.createdAt)
-        return itemDate.isAfter(dateRange[0]) && itemDate.isBefore(dateRange[1])
-      })
-    }
-    
-    setFilteredData(result)
-    setPagination(prev => ({ ...prev, total: result.length, current: 1 }))
-  }, [searchText, actionFilter, statusFilter, dateRange, data])
+    loadData(1, pagination.pageSize)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchText, actionFilter, statusFilter, dateRange])
 
   const handleViewDetail = (record: AuditLog) => {
     setSelectedLog(record)
@@ -153,7 +120,7 @@ export default function AuditLogPage() {
   const handleExport = () => {
     // 导出 CSV
     const headers = ['ID', '用户', '操作', '资源类型', '资源', 'IP地址', '时间', '状态']
-    const rows = filteredData.map(item => [
+    const rows = data.map(item => [
       item.id,
       item.user,
       item.actionName,
@@ -339,7 +306,7 @@ export default function AuditLogPage() {
       <Card data-testid="card-audit-table">
         <Table
           columns={columns}
-          dataSource={filteredData.slice((pagination.current - 1) * pagination.pageSize, pagination.current * pagination.pageSize)}
+          dataSource={data}
           rowKey="id"
           loading={loading}
           scroll={{ x: 1200 }}
@@ -348,7 +315,7 @@ export default function AuditLogPage() {
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total) => `共 ${total} 条`,
-            onChange: (page, pageSize) => setPagination({ ...pagination, current: page, pageSize: pageSize || 10 }),
+            onChange: (page, pageSize) => loadData(page, pageSize || 10),
           }}
           data-testid="table-audit-list"
         />

@@ -1,25 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Table, Card, Tag, Space, Button, Select } from 'antd'
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
+import { ReloadOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import type { ColumnsType } from 'antd/es/table'
-
-interface Change {
-  id: string
-  ciName: string
-  changeType: string
-  description: string
-  operator: string
-  status: string
-  createdAt: string
-  approvedBy?: string
-  approvedAt?: string
-}
+import { useChangeStore, type Change } from '@/stores/change'
 
 export default function ChangeListPage() {
-  const [loading] = useState(false)
+  const { changeList, isLoading, pagination, fetchChangeList } = useChangeStore()
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
 
   const statusOptions = [
@@ -99,15 +88,18 @@ export default function ChangeListPage() {
     },
   ]
 
-  const mockData: Change[] = [
-    { id: '1', ciName: 'DB-主库-01', changeType: '更新配置', description: '修改最大连接数', operator: 'admin', status: 'pending', createdAt: '2024-01-15 10:30' },
-    { id: '2', ciName: 'APP-订单服务', changeType: '重启服务', description: '重启应用服务', operator: 'admin', status: 'approved', createdAt: '2024-01-15 09:15', approvedBy: 'admin' },
-    { id: '3', ciName: 'K8S-集群-01', changeType: '扩缩容', description: '扩容2个节点', operator: 'admin', status: 'completed', createdAt: '2024-01-14 16:45', approvedBy: 'admin', approvedAt: '2024-01-14 17:00' },
-  ]
+  const filteredData = useMemo(
+    () => (statusFilter ? changeList.filter(item => item.status === statusFilter) : changeList),
+    [changeList, statusFilter]
+  )
 
-  const filteredData = statusFilter
-    ? mockData.filter(item => item.status === statusFilter)
-    : mockData
+  useEffect(() => {
+    fetchChangeList()
+  }, [fetchChangeList])
+
+  const handleRefresh = () => {
+    fetchChangeList()
+  }
 
   return (
     <div className="page-change-list" data-testid="page-change-list">
@@ -123,7 +115,7 @@ export default function ChangeListPage() {
             data-testid="select-change-status-filter"
             style={{ width: 120 }}
           />
-          <Button icon={<ReloadOutlined />} data-testid="button-change-refresh">
+          <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={isLoading} data-testid="button-change-refresh">
             刷新
           </Button>
         </Space>
@@ -134,13 +126,14 @@ export default function ChangeListPage() {
           columns={columns}
           dataSource={filteredData}
           rowKey="id"
-          loading={loading}
+          loading={isLoading}
           pagination={{
-            current: 1,
-            pageSize: 20,
-            total: filteredData.length,
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: statusFilter ? filteredData.length : pagination.total,
             showSizeChanger: true,
             showTotal: (total) => `共 ${total} 条`,
+            onChange: (page, pageSize) => fetchChangeList({ page, pageSize }),
           }}
           data-testid="table-change-list"
         />

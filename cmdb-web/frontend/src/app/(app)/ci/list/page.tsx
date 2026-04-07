@@ -7,14 +7,6 @@ import type { ColumnsType } from 'antd/es/table'
 import Link from 'next/link'
 import { useCIStore, CI } from '@/stores/ci'
 
-// 静态模拟数据
-const mockData: CI[] = [
-  { id: '1', name: 'DB-主库-01', type: 'database', status: 'running', ip: '10.0.1.101', project: '订单系统', environment: 'production', createdAt: '2024-01-10 10:00', updatedAt: '2024-01-15 10:00' },
-  { id: '2', name: 'APP-订单服务', type: 'application', status: 'running', ip: '10.0.1.102', project: '订单系统', environment: 'production', createdAt: '2024-01-09 09:00', updatedAt: '2024-01-14 16:00' },
-  { id: '3', name: 'K8S-Node-01', type: 'container', status: 'running', ip: '10.0.2.1', project: '基础设施', environment: 'production', createdAt: '2024-01-08 08:00', updatedAt: '2024-01-13 12:00' },
-  { id: '4', name: 'Web-前端服务', type: 'application', status: 'stopped', ip: '10.0.1.103', project: '官网系统', environment: 'staging', createdAt: '2024-01-07 14:00', updatedAt: '2024-01-12 18:00' },
-]
-
 export default function CIListPage() {
   const { ciList, pagination, isLoading, fetchCIList } = useCIStore()
   const [searchText, setSearchText] = useState('')
@@ -141,7 +133,7 @@ export default function CIListPage() {
   const handleSearch = useCallback(() => {
     fetchCIList({
       filters: {
-        search: searchText,
+        keyword: searchText,
         type: selectedType,
       },
     })
@@ -214,14 +206,14 @@ export default function CIListPage() {
       <Card data-testid="card-ci-table">
         <Table
           columns={columns}
-          dataSource={ciList.length > 0 ? ciList : mockData}
+          dataSource={ciList}
           rowKey="id"
           loading={isLoading}
           scroll={{ x: 1200 }}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
-            total: pagination.total || mockData.length,
+            total: pagination.total,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total) => `共 ${total} 条`,

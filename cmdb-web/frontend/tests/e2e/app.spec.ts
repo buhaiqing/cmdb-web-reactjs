@@ -81,6 +81,92 @@ test.describe('CMDB 端到端测试', () => {
         return
       }
 
+      if (url.includes('/api/users') && route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: '1',
+                username: 'admin',
+                email: 'admin@example.com',
+                role_id: 'r-admin',
+                role: { id: 'r-admin', code: 'admin', name: '系统管理员' },
+                is_active: true,
+                created_at: '2024-01-01 00:00:00',
+              },
+              {
+                id: '2',
+                username: 'operator',
+                email: 'operator@example.com',
+                role_id: 'r-operator',
+                role: { id: 'r-operator', code: 'operator', name: '运维工程师' },
+                is_active: true,
+                created_at: '2024-01-05 10:00:00',
+              },
+            ],
+            total: 2,
+          }),
+        })
+        return
+      }
+
+      if (url.includes('/api/roles') && route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: 'r-admin',
+                name: '系统管理员',
+                code: 'admin',
+                description: '完整系统配置和管理权限',
+                created_at: '2024-01-01 00:00:00',
+              },
+              {
+                id: 'r-operator',
+                name: '运维工程师',
+                code: 'operator',
+                description: '配置项 CRUD、变更执行权限',
+                created_at: '2024-01-01 00:00:00',
+              },
+            ],
+            total: 2,
+          }),
+        })
+        return
+      }
+
+      if (url.includes('/api/audit') && route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: {
+              items: [
+                {
+                  id: 'audit-1',
+                  username: 'admin',
+                  user_id: '1',
+                  action: 'create',
+                  resource_type: 'ci',
+                  resource_id: 'ci-1',
+                  resource_name: 'DB-主库-01',
+                  created_at: '2024-01-15 10:30:00',
+                },
+              ],
+              total: 1,
+            },
+          }),
+        })
+        return
+      }
+
       // Dashboard Stats API
       if (url.includes('/api/dashboard/stats')) {
         await route.fulfill({

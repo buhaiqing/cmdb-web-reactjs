@@ -56,13 +56,18 @@ export const useChangeStore = create<ChangeState>((set, get) => ({
         params: {
           page: params?.page || currentPage,
           pageSize: params?.pageSize || pageSize,
-          ...params?.filters || filters,
+          ...(params?.filters || filters),
         },
       })
       const { items, total } = response.data.data
       set({
         changeList: items,
-        pagination: { ...state.pagination, total },
+        pagination: {
+          current: params?.page || currentPage,
+          pageSize: params?.pageSize || pageSize,
+          total,
+        },
+        filters: params?.filters || filters,
         isLoading: false,
       })
     } catch (error) {
