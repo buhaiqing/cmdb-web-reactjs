@@ -12,7 +12,9 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:full": "TEST_MODE=full playwright test",
     "test:e2e:module": "TEST_MODE=mock playwright test --projects=",
-    "test:e2e:module:full": "TEST_MODE=full playwright test --projects="
+    "test:e2e:module:full": "TEST_MODE=full playwright test --projects=",
+    "test:e2e:failed": "TEST_MODE=mock playwright test --last-failed",
+    "test:e2e:failed:full": "TEST_MODE=full playwright test --last-failed"
   },
   "dependencies": {
     "@ant-design/icons": "^5.4.0",

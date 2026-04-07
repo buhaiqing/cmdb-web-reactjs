@@ -1,4 +1,4 @@
-.PHONY: help install dev test test-e2e-ui test-e2e-headed test-e2e-mock test-report test-full build clean kill-ports
+.PHONY: help install dev test test-e2e-ui test-e2e-headed test-e2e-mock test-e2e-failed test-full-failed test-report test-full build clean kill-ports
 
 # 默认目标
 help:
@@ -8,10 +8,12 @@ help:
 	@echo "  make install        - 安装依赖"
 	@echo "  make dev           - 启动开发服务器 (端口 3000)"
 	@echo "  make test-e2e-mock  - 运行前端 E2E 测试 (使用 Playwright 路由拦截)"
+	@echo "  make test-e2e-failed - 只运行上次失败的 E2E 测试用例 (mock 模式)"
 	@echo "  make test-e2e-ui   - 运行前端 E2E 测试 (UI 模式)"
 	@echo "  make test-e2e-headed - 运行前端 E2E 测试 (有头模式)"
 	@echo "  make test-report   - 查看测试报告"
 	@echo "  make test-full     - 运行前后端一体化测试 (真实数据库 + 前端 E2E 测试)"
+	@echo "  make test-full-failed - 只运行上次失败的 E2E 测试用例 (full 模式)"
 	@echo "  make build         - 生产环境构建"
 	@echo "  make clean         - 清理构建产物"
 	@echo "  make kill-ports    - 清理占用端口的进程"
@@ -61,6 +63,74 @@ test-e2e-mock:
 	fi && \
 	echo "运行 E2E 测试（使用路由拦截）..." && \
 	cd frontend && npm run test:e2e -- --max-failures=3 && \
+	echo "清理进程..." && \
+	kill $$FRONTEND_PID 2>/dev/null || true && \
+	lsof -ti:3001 | xargs kill -9 2>/dev/null || true && \
+	lsof -ti:9323 | xargs kill -9 2>/dev/null || true
+
+# 只运行上次失败的 E2E 测试用例
+test-e2e-failed:
+	@echo "停止占用端口的进程..."
+	@lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+	@lsof -ti:9323 | xargs kill -9 2>/dev/null || true
+	@sleep 2
+	
+	@echo "启动开发服务器（端口 3001）..."
+	@cd frontend && npm run dev -- -p 3001 & \
+	FRONTEND_PID=$$! && \
+	sleep 5 && \
+	echo "检查前端服务启动状态..." && \
+	for i in $$(seq 1 10); do \
+		if curl -s http://localhost:3001 >/dev/null 2>&1; then \
+			echo "前端服务启动成功"; \
+			break; \
+		fi; \
+		echo "等待前端服务启动... ($$i/10)"; \
+		sleep 2; \
+	done; \
+	if ! curl -s http://localhost:3001 >/dev/null 2>&1; then \
+		echo "错误: 前端服务启动失败"; \
+		kill $$FRONTEND_PID 2>/dev/null || true; \
+		lsof -ti:3001 | xargs kill -9 2>/dev/null || true; \
+		lsof -ti:9323 | xargs kill -9 2>/dev/null || true; \
+		exit 1; \
+	fi && \
+	echo "运行上次失败的 E2E 测试用例..." && \
+	cd frontend && npm run test:e2e:failed -- --max-failures=3 && \
+	echo "清理进程..." && \
+	kill $$FRONTEND_PID 2>/dev/null || true && \
+	lsof -ti:3001 | xargs kill -9 2>/dev/null || true && \
+	lsof -ti:9323 | xargs kill -9 2>/dev/null || true
+
+# 只运行上次失败的 E2E 测试用例（full 模式）
+test-full-failed:
+	@echo "停止占用端口的进程..."
+	@lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+	@lsof -ti:9323 | xargs kill -9 2>/dev/null || true
+	@sleep 2
+	
+	@echo "启动开发服务器（端口 3001）..."
+	@cd frontend && npm run dev -- -p 3001 & \
+	FRONTEND_PID=$$! && \
+	sleep 5 && \
+	echo "检查前端服务启动状态..." && \
+	for i in $$(seq 1 10); do \
+		if curl -s http://localhost:3001 >/dev/null 2>&1; then \
+			echo "前端服务启动成功"; \
+			break; \
+		fi; \
+		echo "等待前端服务启动... ($$i/10)"; \
+		sleep 2; \
+	done; \
+	if ! curl -s http://localhost:3001 >/dev/null 2>&1; then \
+		echo "错误: 前端服务启动失败"; \
+		kill $$FRONTEND_PID 2>/dev/null || true; \
+		lsof -ti:3001 | xargs kill -9 2>/dev/null || true; \
+		lsof -ti:9323 | xargs kill -9 2>/dev/null || true; \
+		exit 1; \
+	fi && \
+	echo "运行上次失败的 E2E 测试用例（full 模式）..." && \
+	cd frontend && npm run test:e2e:failed:full -- --max-failures=3 && \
 	echo "清理进程..." && \
 	kill $$FRONTEND_PID 2>/dev/null || true && \
 	lsof -ti:3001 | xargs kill -9 2>/dev/null || true && \
