@@ -215,3 +215,5 @@ playwright-report/
 
 cmdb.db-shm 
 cmdb.db-wal
+
+node_modules/
