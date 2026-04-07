@@ -12,25 +12,22 @@ export class CICreatePage {
    * @throws {Error} 页面加载超时
    */
   async goto() {
-    console.log('导航到配置项创建页面...')
+    console.log('[CICreatePage.goto] 导航到配置项创建页面...')
     try {
-      // 先导航到根路径，确保页面状态干净
-      await this.page.goto('/', { timeout: 30000, waitUntil: 'domcontentloaded' })
-      console.log('✓ 成功导航到根路径')
-      
-      // 然后导航到配置项创建页面
-      await this.page.goto('/ci/create', { timeout: 60000, waitUntil: 'domcontentloaded' })
-      console.log('✓ 成功导航到配置项创建页面')
-      
+      // 直接导航到配置项创建页面
+      await this.page.goto('/ci/create', { timeout: 30000, waitUntil: 'commit' })
+      console.log('[CICreatePage.goto] ✓ 成功导航到配置项创建页面，URL:', this.page.url())
+
       // 等待页面加载完成
-      await this.page.waitForLoadState('load', { timeout: 30000 })
-      console.log('✓ 页面加载完成')
-      
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 15000 })
+      console.log('[CICreatePage.goto] ✓ 页面加载完成')
+
       // 等待表单元素出现
-      await this.page.waitForSelector('[data-testid="form-ci-create"]', { timeout: 30000, state: 'visible' })
-      console.log('✓ 表单元素可见')
+      await this.page.waitForSelector('[data-testid="form-ci-create"]', { timeout: 15000, state: 'visible' })
+      console.log('[CICreatePage.goto] ✓ 表单元素可见')
     } catch (error) {
-      console.error('❌ 导航到配置项创建页面失败:', error)
+      console.error('[CICreatePage.goto] ❌ 导航到配置项创建页面失败:', error)
+      console.error('[CICreatePage.goto] 当前 URL:', this.page.url())
       throw error
     }
   }

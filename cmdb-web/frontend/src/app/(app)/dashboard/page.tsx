@@ -12,6 +12,9 @@ import {
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { api } from '@/stores/user'
+import ResourceTrend from '@/components/dashboard/ResourceTrend'
+import CIDistribution from '@/components/dashboard/CIDistribution'
+import ActivityFeed from '@/components/dashboard/ActivityFeed'
 
 interface RecentChange {
   id: string
@@ -181,12 +184,16 @@ export default function DashboardPage() {
           </Card>
         </Col>
         <Col span={12}>
-          <Card loading={loading} title="资源趋势" data-testid="card-resource-trend">
-            <Space direction="vertical">
-              <div>本周新增资源: <strong>23</strong></div>
-              <div>本周变更: <strong>156</strong></div>
-            </Space>
-          </Card>
+          <ResourceTrend />
+        </Col>
+      </Row>
+
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={12}>
+          <CIDistribution />
+        </Col>
+        <Col span={12}>
+          <ActivityFeed />
         </Col>
       </Row>
 

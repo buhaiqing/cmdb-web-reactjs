@@ -1,12 +1,10 @@
 import { test, expect } from '@playwright/test'
-import { LoginPage } from './pages/LoginPage'
 import { RelationGraphPage } from './pages/RelationGraphPage'
 import { isMockMode, isFullMode, setupFallbackMocks } from './setup/test-config'
 import { setupMockRoutes } from './setup/mock-routes'
 import { generateTestData, generateTestId } from './setup/test-data'
 
 test.describe('关系管理测试', () => {
-  let loginPage: LoginPage
   let relationGraphPage: RelationGraphPage
   let testId: string
 
@@ -15,15 +13,11 @@ test.describe('关系管理测试', () => {
     testId = generateTestId('relation')
     console.log(`开始测试: ${testId}`)
 
-    loginPage = new LoginPage(page)
     relationGraphPage = new RelationGraphPage(page)
 
     // Full 模式：登录 + 设置 fallback mocks
     if (isFullMode()) {
       await setupFallbackMocks(page)
-      await loginPage.goto()
-      await loginPage.login('admin', 'admin123')
-      await loginPage.waitForLoginSuccess()
       return
     }
 
@@ -33,7 +27,6 @@ test.describe('关系管理测试', () => {
     // 使用统一的 Mock 路由配置
     await setupMockRoutes(page)
 
-    loginPage = new LoginPage(page)
     relationGraphPage = new RelationGraphPage(page)
   })
 
@@ -42,18 +35,12 @@ test.describe('关系管理测试', () => {
   })
 
   test('REL-001: 查看关系图谱', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await relationGraphPage.goto()
     await relationGraphPage.expectGraphVisible()
   })
 
   test('REL-002: 验证节点和边显示', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await relationGraphPage.goto()
     await relationGraphPage.expectGraphVisible()
@@ -61,9 +48,6 @@ test.describe('关系管理测试', () => {
   })
 
   test('REL-003: 点击节点查看详情', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await relationGraphPage.goto()
     await relationGraphPage.expectGraphVisible()
@@ -71,9 +55,6 @@ test.describe('关系管理测试', () => {
   })
 
   test('REL-004: 影响分析功能', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await relationGraphPage.goto()
     await relationGraphPage.expectGraphVisible()
@@ -81,9 +62,6 @@ test.describe('关系管理测试', () => {
   })
 
   test('REL-005: 缩放和重置视图', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await relationGraphPage.goto()
     await relationGraphPage.expectGraphVisible()
@@ -94,9 +72,6 @@ test.describe('关系管理测试', () => {
   })
 
   test('REL-006: 全屏模式切换', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await relationGraphPage.goto()
     await relationGraphPage.expectGraphVisible()
@@ -106,9 +81,6 @@ test.describe('关系管理测试', () => {
   })
 
   test('REL-007: 创建新关系', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await relationGraphPage.goto()
     await relationGraphPage.expectGraphVisible()
@@ -116,9 +88,6 @@ test.describe('关系管理测试', () => {
   })
 
   test('REL-008: 删除关系', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await relationGraphPage.goto()
     await relationGraphPage.expectGraphVisible()
@@ -127,9 +96,6 @@ test.describe('关系管理测试', () => {
   })
 
   test('REL-009: 搜索节点', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await relationGraphPage.goto()
     await relationGraphPage.expectGraphVisible()
@@ -138,9 +104,6 @@ test.describe('关系管理测试', () => {
   })
 
   test('REL-010: 按类型筛选节点', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await relationGraphPage.goto()
     await relationGraphPage.expectGraphVisible()

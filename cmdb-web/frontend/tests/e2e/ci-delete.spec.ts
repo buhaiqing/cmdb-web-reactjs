@@ -1,11 +1,9 @@
 import { test, expect } from '@playwright/test'
 import { isMockMode, isFullMode, setupCommonMocks, setupFallbackMocks } from './setup/test-config'
-import { LoginPage } from './pages/LoginPage'
 import { CIDetailPage } from './pages/CIDetailPage'
 import { CIListPage } from './pages/CIListPage'
 
 test.describe('配置项删除测试', () => {
-  let loginPage: LoginPage
   let ciDetailPage: CIDetailPage
   let ciListPage: CIListPage
 
@@ -15,6 +13,8 @@ test.describe('配置项删除测试', () => {
     type: 'server',
     status: 'running',
     ip: '192.168.1.100',
+    createdAt: '2024-01-15 10:00:00',
+    updatedAt: '2024-01-15 10:00:00',
   }
 
   let deletedCIIds: string[] = []
@@ -22,34 +22,47 @@ test.describe('配置项删除测试', () => {
   // Full 模式下通过 API 创建的测试 CI
   let fullModeTestCI: { id: string; name: string } | null = null
 
-  test.beforeEach(async ({ page }) => {
-    loginPage = new LoginPage(page)
+  // Full 模式下的 API Token
+  let apiToken: string | null = null
+
+  test.beforeEach(async ({ page, request }) => {
+    console.log('[ci-delete.spec] beforeEach 开始')
     ciDetailPage = new CIDetailPage(page)
     ciListPage = new CIListPage(page)
 
-    // Full 模式：登录 + 设置 fallback mocks + 创建测试 CI
+    // Full 模式：设置 fallback mocks + 创建测试 CI
     if (isFullMode()) {
+      console.log('[ci-delete.spec] Full 模式：设置 fallback mocks')
       await setupFallbackMocks(page)
-      await loginPage.goto()
-      await loginPage.login('admin', 'admin123')
-      await loginPage.waitForLoginSuccess()
 
-      // 通过真实 API 创建一个临时 CI 用于删除测试
-      // 先从 zustand store 中获取 token
-      const token = await page.evaluate(() => {
-        const stored = localStorage.getItem('cmdb-user-storage')
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          return parsed.state?.token
-        }
-        return null
+      const apiBaseUrl = 'http://127.0.0.1:8000'
+
+      // 先通过 API 登录获取 token
+      console.log('[ci-delete.spec] Full 模式：API 登录获取 token')
+      const loginResponse = await request.post(`${apiBaseUrl}/api/auth/login`, {
+        headers: { 'Content-Type': 'application/json' },
+        data: { username: 'admin', password: 'admin123' },
       })
 
+      if (!loginResponse.ok()) {
+        const errorText = await loginResponse.text()
+        console.error(`[ci-delete.spec] API 登录失败: ${loginResponse.status()} - ${errorText}`)
+        throw new Error(`API 登录失败: ${loginResponse.status()}`)
+      }
+
+      const loginData = await loginResponse.json()
+      apiToken = loginData.data.token
+      console.log('[ci-delete.spec] Full 模式：API 登录成功，获取 token')
+
+      // 通过真实 API 创建一个临时 CI 用于删除测试
       const ciName = '待删除测试服务器-' + Date.now()
-      const apiResponse = await page.request.post('http://127.0.0.1:8000/api/ci', {
+      console.log(`[ci-delete.spec] Full 模式：创建测试 CI，名称=${ciName}`)
+
+      // 使用 Playwright 的 request 上下文直接调用后端 API
+      const apiResponse = await request.post(`${apiBaseUrl}/api/ci`, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${apiToken}`,
         },
         data: {
           name: ciName,
@@ -59,9 +72,16 @@ test.describe('配置项删除测试', () => {
           environment: 'production',
         },
       })
+
+      if (!apiResponse.ok()) {
+        const errorText = await apiResponse.text()
+        console.error(`[ci-delete.spec] 创建 CI 失败: ${apiResponse.status()} - ${errorText}`)
+        throw new Error(`创建测试 CI 失败: ${apiResponse.status()}`)
+      }
+
       const apiData = await apiResponse.json()
       fullModeTestCI = { id: apiData.data.id, name: ciName }
-      console.log(`Full 模式：创建测试 CI, id=${fullModeTestCI.id}`)
+      console.log(`[ci-delete.spec] Full 模式：创建测试 CI 成功, id=${fullModeTestCI.id}`)
       return
     }
 
@@ -76,8 +96,9 @@ test.describe('配置项删除测试', () => {
     await page.route('**/api/**', async (route) => {
       const url = route.request().url()
 
-      // 如果已经处理过，跳过
-      if (url.includes('/api/auth/') || url.includes('/api/dashboard/') || url.includes('/api/changes/recent')) {
+      // Auth/Dashboard 请求由 setupCommonMocks 处理，直接放行
+      if (url.includes('/api/auth/') || url.includes('/api/dashboard/') || url.includes('/api/changes/recent') || url.includes('/api/tags') || url.includes('/api/ci-types') || url.includes('/api/notifications') || url.includes('/api/audit')) {
+        await route.continue()
         return
       }
 
@@ -136,13 +157,9 @@ test.describe('配置项删除测试', () => {
       await route.continue()
     })
 
-    loginPage = new LoginPage(page)
     ciDetailPage = new CIDetailPage(page)
     ciListPage = new CIListPage(page)
 
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
   })
 
   // 获取当前模式的测试 CI 数据

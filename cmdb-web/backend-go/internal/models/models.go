@@ -97,6 +97,55 @@ type ChangeRequest struct {
 	TimestampMixin
 }
 
+// CIVersion 配置项版本历史模型
+type CIVersion struct {
+	ID         string  `gorm:"type:varchar(36);primaryKey" json:"id"`
+	CIID       string  `gorm:"type:varchar(36);not null;index" json:"ci_id"`
+	Version    int     `gorm:"not null" json:"version"`
+	Changes    string  `gorm:"type:text" json:"changes"`
+	ChangedBy  string  `gorm:"type:varchar(100);not null" json:"changed_by"`
+	ChangeDesc *string `gorm:"type:text" json:"change_desc"`
+	Snapshot   string  `gorm:"type:text" json:"snapshot"`
+	TimestampMixin
+}
+
+// Tag 标签模型
+type Tag struct {
+	ID          string  `gorm:"type:varchar(36);primaryKey" json:"id"`
+	Name        string  `gorm:"type:varchar(50);uniqueIndex;not null" json:"name"`
+	Color       string  `gorm:"type:varchar(20);default:'blue'" json:"color"`
+	Description *string `gorm:"type:varchar(200)" json:"description"`
+	CreatedBy   string  `gorm:"type:varchar(100)" json:"created_by"`
+	TimestampMixin
+}
+
+// Notification 通知模型
+type Notification struct {
+	ID          string     `gorm:"type:varchar(36);primaryKey" json:"id"`
+	UserID      string     `gorm:"type:varchar(36);not null;index" json:"user_id"`
+	Type        string     `gorm:"type:varchar(50);not null" json:"type"`
+	Title       string     `gorm:"type:varchar(200);not null" json:"title"`
+	Content     string     `gorm:"type:text" json:"content"`
+	RelatedID   *string    `gorm:"type:varchar(36)" json:"related_id"`
+	RelatedType *string    `gorm:"type:varchar(50)" json:"related_type"`
+	IsRead      bool       `gorm:"default:false;index" json:"is_read"`
+	ReadAt      *time.Time `json:"read_at"`
+	TimestampMixin
+}
+
+// CIType 配置项类型模型
+type CIType struct {
+	ID          string  `gorm:"type:varchar(36);primaryKey" json:"id"`
+	Name        string  `gorm:"type:varchar(50);uniqueIndex;not null" json:"name"`
+	Code        string  `gorm:"type:varchar(50);uniqueIndex;not null" json:"code"`
+	Icon        *string `gorm:"type:varchar(50)" json:"icon"`
+	Description *string `gorm:"type:varchar(200)" json:"description"`
+	Attributes  *string `gorm:"type:text" json:"attributes"`
+	IsActive    bool    `gorm:"default:true" json:"is_active"`
+	SortOrder   int     `gorm:"default:0" json:"sort_order"`
+	TimestampMixin
+}
+
 func (Role) TableName() string {
 	return "roles"
 }
@@ -119,4 +168,20 @@ func (AuditLog) TableName() string {
 
 func (ChangeRequest) TableName() string {
 	return "change_requests"
+}
+
+func (CIVersion) TableName() string {
+	return "ci_versions"
+}
+
+func (Tag) TableName() string {
+	return "tags"
+}
+
+func (Notification) TableName() string {
+	return "notifications"
+}
+
+func (CIType) TableName() string {
+	return "ci_types"
 }

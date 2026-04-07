@@ -4,7 +4,9 @@ export class CIEditPage {
   constructor(private page: Page) {}
 
   async goto(id: string) {
-    await this.page.goto(`/ci/${id}/edit`)
+    console.log(`[CIEditPage.goto] 导航到编辑页，id=${id}`)
+    await this.page.goto(`/ci/${id}/edit`, { timeout: 30000, waitUntil: 'domcontentloaded' })
+    console.log(`[CIEditPage.goto] ✓ 导航完成，URL: ${this.page.url()}`)
   }
 
   async expectFormVisible() {

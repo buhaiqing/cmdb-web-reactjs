@@ -12,12 +12,12 @@ export class CIListPage {
    * @throws {Error} 页面加载超时
    */
   async goto() {
-    console.log('导航到配置项列表页面...')
+    console.log('[CIListPage.goto] 导航到配置项列表页面...')
     try {
       await this.page.goto('/ci/list', { timeout: 30000, waitUntil: 'domcontentloaded' })
-      console.log('✓ 成功导航到配置项列表页面')
+      console.log('[CIListPage.goto] ✓ 成功导航到配置项列表页面，URL:', this.page.url())
     } catch (error) {
-      console.error('❌ 导航到配置项列表页面失败:', error)
+      console.error('[CIListPage.goto] ❌ 导航到配置项列表页面失败:', error)
       throw error
     }
   }

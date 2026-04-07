@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test'
-import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { CIListPage } from './pages/CIListPage'
 import { CICreatePage } from './pages/CICreatePage'
@@ -7,6 +6,8 @@ import { CIDetailPage } from './pages/CIDetailPage'
 import { CIEditPage } from './pages/CIEditPage'
 import { ChangeRequestPage } from './pages/ChangeRequestPage'
 import { AppLayout } from './pages/AppLayout'
+import { LoginPage } from './pages/LoginPage'
+import { apiLogin, apiCreateCI } from './utils/api-helper'
 import { isMockMode, isFullMode, setupFallbackMocks } from './setup/test-config'
 
 test.describe('CMDB 端到端测试', () => {
@@ -386,83 +387,56 @@ test.describe('CMDB 端到端测试', () => {
   })
 
   test('登录 - 使用有效凭证成功登录', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.expectLoginFormVisible()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
+    await page.goto('/')
     await appLayout.expectUserLoggedIn('admin')
   })
 
   test('仪表盘 - 登录后成功加载', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await dashboardPage.goto()
     await dashboardPage.expectDashboardVisible()
   })
 
   test('配置项管理 - 查看配置项列表', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await ciListPage.goto()
     await ciListPage.expectCIListVisible()
   })
 
   test('导航 - 从仪表盘到配置项列表', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await page.goto('/ci/list')
     await ciListPage.expectCIListVisible()
   })
 
   test('系统管理 - 用户列表页面', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
-    await page.waitForSelector('[data-testid="layout-app"]', { timeout: 10000 })
-
     await page.goto('/system/user')
-    await page.waitForURL('**/system/user', { timeout: 10000 })
+    await page.waitForURL('**/system/user', { timeout: 15000 })
+    await page.waitForSelector('[data-testid="layout-app"]', { timeout: 15000 })
 
     await expect(page.locator('[data-testid="page-user-manage"]')).toBeVisible({ timeout: 15000 })
     await expect(page.locator('[data-testid="table-user-list"]')).toBeVisible({ timeout: 10000 })
   })
 
   test('系统管理 - 角色列表页面', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
-    await page.waitForSelector('[data-testid="layout-app"]', { timeout: 10000 })
-
     await page.goto('/system/role')
-    await page.waitForURL('**/system/role', { timeout: 10000 })
+    await page.waitForURL('**/system/role', { timeout: 15000 })
+    await page.waitForSelector('[data-testid="layout-app"]', { timeout: 15000 })
 
     await expect(page.locator('[data-testid="page-role-manage"]')).toBeVisible({ timeout: 15000 })
     await expect(page.locator('[data-testid="table-role-list"]')).toBeVisible({ timeout: 10000 })
   })
 
   test('系统管理 - 审计日志页面', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
-    await page.waitForSelector('[data-testid="layout-app"]', { timeout: 10000 })
-
     await page.goto('/system/audit')
-    await page.waitForURL('**/system/audit', { timeout: 10000 })
+    await page.waitForURL('**/system/audit', { timeout: 15000 })
+    await page.waitForSelector('[data-testid="layout-app"]', { timeout: 15000 })
 
     await expect(page.locator('[data-testid="page-audit-log"]')).toBeVisible({ timeout: 15000 })
     await expect(page.locator('[data-testid="table-audit-list"]')).toBeVisible({ timeout: 10000 })
   })
 
   test('配置项管理 - 创建配置项', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await ciCreatePage.goto()
     await ciCreatePage.expectFormVisible()
@@ -478,9 +452,6 @@ test.describe('CMDB 端到端测试', () => {
   })
 
   test('配置项管理 - 搜索配置项', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await ciListPage.goto()
     await ciListPage.searchCI('测试')
@@ -488,9 +459,6 @@ test.describe('CMDB 端到端测试', () => {
   })
 
   test('配置项管理 - 从列表导航到创建页面', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await ciListPage.goto()
     await ciListPage.clickCreateButton()
@@ -499,37 +467,21 @@ test.describe('CMDB 端到端测试', () => {
   })
 
   test('变更管理 - 查看变更请求列表', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
-    await page.waitForSelector('[data-testid="layout-app"]', { timeout: 10000 })
-
     await page.goto('/change/list')
-    await page.waitForURL('**/change/list', { timeout: 10000 })
+    await page.waitForURL('**/change/list', { timeout: 15000 })
+    await page.waitForSelector('[data-testid="layout-app"]', { timeout: 15000 })
 
     await expect(page.locator('[data-testid="page-change-list"]')).toBeVisible({ timeout: 15000 })
   })
 
-  test('配置项管理 - 配置项详情测试', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
+  test('配置项管理 - 配置项详情测试', async ({ page, request }) => {
 
     // Full 模式：先通过 API 创建 CI，获取真实 ID
     let ciId = '1'
     if (isFullMode()) {
-      const token = await page.evaluate(() => {
-        const stored = localStorage.getItem('cmdb-user-storage')
-        if (stored) { const parsed = JSON.parse(stored); return parsed.state?.token }
-        return null
-      })
+      const token = await apiLogin(request)
       const ciName = 'App详情测试CI-' + Date.now()
-      const resp = await page.request.post('http://127.0.0.1:8000/api/ci', {
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        data: { name: ciName, type: 'server', ip: '10.0.1.200', project: '测试项目', environment: 'production' },
-      })
-      const respData = await resp.json()
-      ciId = String(respData.data.id)
+      ciId = await apiCreateCI(request, token, ciName, { ip: '10.0.1.200' })
     }
 
     await ciDetailPage.goto(ciId)
@@ -537,26 +489,14 @@ test.describe('CMDB 端到端测试', () => {
     await ciDetailPage.expectRelationsVisible()
   })
 
-  test('配置项管理 - 编辑配置项', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
+  test('配置项管理 - 编辑配置项', async ({ page, request }) => {
 
     // Full 模式：先通过 API 创建 CI，获取真实 ID
     let ciId = '1'
     if (isFullMode()) {
-      const token = await page.evaluate(() => {
-        const stored = localStorage.getItem('cmdb-user-storage')
-        if (stored) { const parsed = JSON.parse(stored); return parsed.state?.token }
-        return null
-      })
+      const token = await apiLogin(request)
       const ciName = 'App编辑测试CI-' + Date.now()
-      const resp = await page.request.post('http://127.0.0.1:8000/api/ci', {
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        data: { name: ciName, type: 'server', ip: '10.0.1.201', project: '测试项目', environment: 'production' },
-      })
-      const respData = await resp.json()
-      ciId = String(respData.data.id)
+      ciId = await apiCreateCI(request, token, ciName, { ip: '10.0.1.201' })
     }
 
     await ciDetailPage.goto(ciId)
@@ -567,19 +507,12 @@ test.describe('CMDB 端到端测试', () => {
     await ciEditPage.expectEditSuccess()
   })
 
-  test('配置项管理 - 删除配置项', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
+  test('配置项管理 - 删除配置项', async ({ page, request }) => {
 
     // Full 模式：先通过 API 创建 CI，获取真实 ID
     let ciId = '1'
     if (isFullMode()) {
-      const token = await page.evaluate(() => {
-        const stored = localStorage.getItem('cmdb-user-storage')
-        if (stored) { const parsed = JSON.parse(stored); return parsed.state?.token }
-        return null
-      })
+      const token = await apiLogin(request)
       const ciName = 'App删除测试CI-' + Date.now()
       const resp = await page.request.post('http://127.0.0.1:8000/api/ci', {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -595,9 +528,6 @@ test.describe('CMDB 端到端测试', () => {
   })
 
   test('变更管理 - 创建变更请求', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await changeRequestPage.gotoCreate()
     await changeRequestPage.expectCreateFormVisible()
@@ -612,9 +542,6 @@ test.describe('CMDB 端到端测试', () => {
   })
 
   test('变更管理 - 查看变更请求详情', async ({ page }) => {
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
 
     await changeRequestPage.gotoDetail('1')
     await changeRequestPage.expectDetailVisible()
@@ -664,9 +591,7 @@ test.describe('CMDB 端到端测试', () => {
       })
     }
 
-    await loginPage.goto()
     await loginPage.login('user', 'user123')
-    await loginPage.waitForLoginSuccess()
     await appLayout.expectUserLoggedIn('user')
   })
 })

@@ -24,6 +24,8 @@ func SetupRoutes(r *gin.Engine) {
 		p := api.Group("/permissions", middleware.AuthMiddleware())
 		{
 			p.GET("", ListPermissions)
+			p.GET("/roles/:roleId", GetRolePermissions)
+			p.PUT("/roles/:roleId", UpdateRolePermissions)
 		}
 
 		// 用户路由
@@ -54,6 +56,37 @@ func SetupRoutes(r *gin.Engine) {
 			ci.GET("/:id", GetCI)
 			ci.PUT("/:id", UpdateCI)
 			ci.DELETE("/:id", DeleteCI)
+			ci.POST("/batch/delete", BatchDeleteCI)
+			ci.POST("/batch/update", BatchUpdateCI)
+		}
+
+		// CI类型管理路由
+		ciTypes := api.Group("/ci-types", middleware.AuthMiddleware())
+		{
+			ciTypes.GET("", ListCITypes)
+			ciTypes.POST("", CreateCIType)
+			ciTypes.GET("/:id", GetCIType)
+			ciTypes.PUT("/:id", UpdateCIType)
+			ciTypes.DELETE("/:id", DeleteCIType)
+		}
+
+		// 标签管理路由
+		tags := api.Group("/tags", middleware.AuthMiddleware())
+		{
+			tags.GET("", ListTags)
+			tags.POST("", CreateTag)
+			tags.GET("/:id", GetTag)
+			tags.PUT("/:id", UpdateTag)
+			tags.DELETE("/:id", DeleteTag)
+			tags.GET("/:id/ci", GetCIsByTag)
+		}
+
+		// 版本历史路由
+		versions := api.Group("/versions", middleware.AuthMiddleware())
+		{
+			versions.GET("/ci/:ciId", GetCIVersions)
+			versions.GET("/ci/:ciId/:version", GetCIVersionDetail)
+			versions.POST("/ci/:ciId/rollback/:version", RollbackCIVersion)
 		}
 
 		// 关系路由
@@ -73,6 +106,8 @@ func SetupRoutes(r *gin.Engine) {
 		{
 			dashboard.GET("", GetDashboard)
 			dashboard.GET("/stats", GetDashboardStats)
+			dashboard.GET("/trend", GetResourceTrend)
+			dashboard.GET("/summary", GetDashboardSummary)
 		}
 
 		// 变更路由
@@ -86,12 +121,24 @@ func SetupRoutes(r *gin.Engine) {
 			changes.GET("/:id", GetChange)
 			changes.PUT("/:id", UpdateChange)
 			changes.DELETE("/:id", DeleteChange)
+			changes.POST("/batch/approve", BatchApproveChanges)
+			changes.POST("/batch/reject", BatchRejectChanges)
 		}
 
 		// 审计路由
 		audit := api.Group("/audit", middleware.AuthMiddleware())
 		{
 			audit.GET("", ListAuditLogs)
+		}
+
+		// 通知路由
+		notifications := api.Group("/notifications", middleware.AuthMiddleware())
+		{
+			notifications.GET("", ListNotifications)
+			notifications.GET("/unread-count", GetUnreadCount)
+			notifications.POST("/:id/read", MarkAsRead)
+			notifications.POST("/read-all", MarkAllAsRead)
+			notifications.DELETE("/:id", DeleteNotification)
 		}
 	}
 

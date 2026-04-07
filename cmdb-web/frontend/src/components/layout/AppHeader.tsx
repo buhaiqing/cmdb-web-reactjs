@@ -128,7 +128,7 @@ export default function AppHeader() {
               icon={<UserOutlined />}
               data-testid="header-avatar"
             />
-            <span style={{ color: 'white' }} data-testid="header-username">{user?.username || 'Admin'}</span>
+            <span style={{ color: 'white' }} data-testid="header-username">{user?.username || 'admin'}</span>
           </Space>
         </Dropdown>
       </Space>

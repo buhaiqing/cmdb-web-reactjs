@@ -33,8 +33,30 @@ export const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    // 优先使用内存中的token，用于服务端渲染兼容性
-    const token = globalToken
+    // 优先使用内存中的token，用于性能和服务端渲染兼容性
+    let token = globalToken
+    
+    // 如果内存中没有，从 store 中获取
+    if (!token) {
+      token = useUserStore.getState().token
+    }
+
+    // 如果 store 中还没有（可能尚未完成 hydration），尝试直接从 localStorage 读取作为兜底
+    if (!token && typeof window !== 'undefined') {
+      try {
+        const storage = window.localStorage.getItem('cmdb-user-storage')
+        if (storage) {
+          const parsed = JSON.parse(storage)
+          token = parsed.state?.token
+          if (token) {
+            globalToken = token // 同步到内存
+          }
+        }
+      } catch (e) {
+        // 忽略解析错误
+      }
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }

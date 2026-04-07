@@ -1,11 +1,9 @@
 import { test, expect } from '@playwright/test'
-import { isMockMode, isFullMode, setupFallbackMocks } from './setup/test-config'
-import { LoginPage } from './pages/LoginPage'
+import { isMockMode, isFullMode, setupCommonMocks, setupFallbackMocks } from './setup/test-config'
 import { CIDetailPage } from './pages/CIDetailPage'
 import { CIEditPage } from './pages/CIEditPage'
 
 test.describe('配置项编辑测试', () => {
-  let loginPage: LoginPage
   let ciDetailPage: CIDetailPage
   let ciEditPage: CIEditPage
 
@@ -55,108 +53,93 @@ test.describe('配置项编辑测试', () => {
       description: '原始描述信息',
     }
 
-    loginPage = new LoginPage(page)
-    ciDetailPage = new CIDetailPage(page)
-    ciEditPage = new CIEditPage(page)
-
-    // Full 模式：登录 + 设置 fallback mocks + 创建测试 CI
+    // Full 模式：设置 fallback mocks + 创建测试 CI
     if (isFullMode()) {
+      console.log('[ci-edit.spec] Full 模式：设置 fallback mocks')
       await setupFallbackMocks(page)
-      await loginPage.goto()
-      await loginPage.login('admin', 'admin123')
-      await loginPage.waitForLoginSuccess()
+      ciDetailPage = new CIDetailPage(page)
+      ciEditPage = new CIEditPage(page)
 
-      // 通过真实 API 创建一个临时 CI 用于编辑测试
-      const token = await page.evaluate(() => {
-        const stored = localStorage.getItem('cmdb-user-storage')
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          return parsed.state?.token
-        }
-        return null
+      const apiBaseUrl = 'http://127.0.0.1:8000'
+
+      // 先通过 API 登录获取 token
+      console.log('[ci-edit.spec] Full 模式：API 登录获取 token')
+      const loginResponse = await page.request.post(`${apiBaseUrl}/api/auth/login`, {
+        headers: { 'Content-Type': 'application/json' },
+        data: { username: 'admin', password: 'admin123' },
       })
 
+      if (!loginResponse.ok()) {
+        throw new Error(`API 登录失败: ${loginResponse.status()}`)
+      }
+
+      const loginData = await loginResponse.json()
+      const apiToken = loginData.data.token
+      console.log('[ci-edit.spec] Full 模式：API 登录成功')
+
+      // 通过真实 API 创建一个临时 CI 用于编辑测试
       const ciName = '编辑测试服务器-' + Date.now()
-      const apiResponse = await page.request.post('http://127.0.0.1:8000/api/ci', {
+      console.log(`[ci-edit.spec] Full 模式：创建测试 CI，名称=${ciName}`)
+
+      const apiResponse = await page.request.post(`${apiBaseUrl}/api/ci`, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${apiToken}`,
         },
         data: {
           name: ciName,
           type: 'server',
           ip: '192.168.1.100',
           project: '测试项目',
-          environment: 'production',
+          environment: 'development',
         },
       })
+
+      if (!apiResponse.ok()) {
+        throw new Error(`创建测试 CI 失败: ${apiResponse.status()}`)
+      }
+
       const apiData = await apiResponse.json()
       fullModeTestCI = { id: apiData.data.id, name: ciName }
-      console.log(`Full 模式：创建测试 CI, id=${fullModeTestCI.id}`)
+      console.log(`[ci-edit.spec] Full 模式：创建测试 CI 成功, id=${fullModeTestCI.id}`)
       return
     }
 
     // Mock 模式：设置拦截器
     if (!isMockMode()) return
 
-    await page.route('**/api/**', async (route) => {
+    // 设置通用的 Mock 路由（认证 + Dashboard + CI）
+    await setupCommonMocks(page)
+
+    // 设置 CI 编辑相关的 Mock
+    await page.route('**/api/ci/**', async (route) => {
       const url = route.request().url()
+      const method = route.request().method()
 
-      if (url.includes('/api/auth/login')) {
+      // GET 请求 - CI 详情
+      if (url.includes('/api/ci/') && method === 'GET' && !url.includes('/api/ci/')) {
+        await route.continue()
+        return
+      }
+
+      // GET 请求 - CI 详情
+      const ciMatch = url.match(/\/api\/ci\/([^/]+)$/)
+      if (ciMatch && method === 'GET') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             success: true,
-            data: {
-              token: 'mock-jwt-token',
-              user: {
-                id: '1',
-                username: 'admin',
-                email: 'admin@example.com',
-                role: 'admin',
-                permissions: ['*'],
-              },
-            },
+            data: { ...mockCI, id: ciMatch[1] },
           }),
         })
         return
       }
 
-      if (url.includes('/api/auth/me')) {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            data: {
-              id: '1',
-              username: 'admin',
-              email: 'admin@example.com',
-              role: 'admin',
-              permissions: ['*'],
-            },
-          }),
-        })
-        return
-      }
-
-      if (url.includes(`/api/ci/${mockCI.id}`) && route.request().method() === 'GET') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            data: mockCI,
-          }),
-        })
-        return
-      }
-
-      if (url.includes(`/api/ci/${mockCI.id}`) && route.request().method() === 'PUT') {
-        const requestBody = JSON.parse(route.request().postData() || '{}')
-        // 更新 mockCI 对象，使编辑后的数据被记住
-        Object.assign(mockCI, requestBody)
+      // PUT 请求 - 更新 CI
+      if (ciMatch && method === 'PUT') {
+        const updateData = JSON.parse(route.request().postData() || '{}')
+        mockCI = { ...mockCI, ...updateData }
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -171,13 +154,9 @@ test.describe('配置项编辑测试', () => {
       await route.continue()
     })
 
-    loginPage = new LoginPage(page)
     ciDetailPage = new CIDetailPage(page)
     ciEditPage = new CIEditPage(page)
 
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
   })
 
   test('CI-011: 编辑现有配置项名称', async () => {
@@ -191,7 +170,7 @@ test.describe('配置项编辑测试', () => {
 
     // 验证编辑表单可见且预填充
     await ciEditPage.expectFormVisible()
-    await ciEditPage.expectFormPrefilled({ name: testCI.name, type: isFullMode() ? '服务器' : testCI.typeLabel })
+    await ciEditPage.expectFormPrefilled({ name: testCI.name, type: '服务器' })
 
     // 修改名称
     const newName = '编辑后名称-' + Date.now()
@@ -248,13 +227,13 @@ test.describe('配置项编辑测试', () => {
     await ciDetailPage.expectCIDataVisible({ name: newName })
   })
 
-  test('CI-014: 取消编辑操作', async () => {
+  test('CI-014: 取消编辑操作', async ({ page }) => {
     const testCI = getTestCI()
     await ciDetailPage.goto(testCI.id)
     await ciDetailPage.expectDetailVisible()
 
     // 记录当前页面上显示的 CI 名称（full 模式下可能已被前面的测试修改）
-    const currentName = await ciDetailPage.page.locator('[data-testid="ci-detail-name"]').textContent() || testCI.name
+    const currentName = await page.locator('[data-testid="ci-detail-name"]').textContent() || testCI.name
 
     // 点击编辑按钮
     await ciDetailPage.clickEditButton()
@@ -271,17 +250,17 @@ test.describe('配置项编辑测试', () => {
     await ciDetailPage.expectCIDataVisible({ name: currentName })
   })
 
-  test('CI-015: 验证必填字段在编辑时仍然有效', async () => {
+  test('CI-015: 验证必填字段在编辑时仍然有效', async ({ page }) => {
     const testCI = getTestCI()
     await ciDetailPage.goto(testCI.id)
     await ciDetailPage.clickEditButton()
     await ciEditPage.expectFormVisible()
 
     // 清空名称字段
-    await ciEditPage.page.fill('[data-testid="input-ci-name"]', '')
+    await page.fill('[data-testid="input-ci-name"]', '')
     await ciEditPage.submit()
 
     // 验证错误提示
-    await expect(ciEditPage.page.locator('.ant-form-item-explain-error')).toContainText('请输入配置项名称')
+    await expect(page.locator('.ant-form-item-explain-error')).toContainText('请输入配置项名称')
   })
 })

@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { isMockMode, isFullMode, setupFallbackMocks } from './setup/test-config'
-import { LoginPage } from './pages/LoginPage'
 import { CIDetailPage } from './pages/CIDetailPage'
 
 test.describe('配置项详情测试', () => {
-  let loginPage: LoginPage
   let ciDetailPage: CIDetailPage
 
   const mockCI = {
@@ -37,32 +35,40 @@ test.describe('配置项详情测试', () => {
     return mockCI
   }
 
-  test.beforeEach(async ({ page }) => {
-    loginPage = new LoginPage(page)
+  test.beforeEach(async ({ page, request }) => {
+    console.log('[ci-detail.spec] beforeEach 开始')
     ciDetailPage = new CIDetailPage(page)
 
-    // Full 模式：登录 + 设置 fallback mocks + 创建测试 CI
+    // Full 模式：设置 fallback mocks + 创建测试 CI
     if (isFullMode()) {
+      console.log('[ci-detail.spec] Full 模式：设置 fallback mocks')
       await setupFallbackMocks(page)
-      await loginPage.goto()
-      await loginPage.login('admin', 'admin123')
-      await loginPage.waitForLoginSuccess()
 
-      // 通过真实 API 创建一个临时 CI 用于详情测试
-      const token = await page.evaluate(() => {
-        const stored = localStorage.getItem('cmdb-user-storage')
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          return parsed.state?.token
-        }
-        return null
+      const apiBaseUrl = 'http://127.0.0.1:8000'
+
+      // 先通过 API 登录获取 token
+      console.log('[ci-detail.spec] Full 模式：API 登录获取 token')
+      const loginResponse = await request.post(`${apiBaseUrl}/api/auth/login`, {
+        headers: { 'Content-Type': 'application/json' },
+        data: { username: 'admin', password: 'admin123' },
       })
 
+      if (!loginResponse.ok()) {
+        throw new Error(`API 登录失败: ${loginResponse.status()}`)
+      }
+
+      const loginData = await loginResponse.json()
+      const apiToken = loginData.data.token
+      console.log('[ci-detail.spec] Full 模式：API 登录成功')
+
+      // 通过真实 API 创建一个临时 CI 用于详情测试
       const ciName = '详情测试服务器-' + Date.now()
-      const apiResponse = await page.request.post('http://127.0.0.1:8000/api/ci', {
+      console.log(`[ci-detail.spec] Full 模式：创建测试 CI，名称=${ciName}`)
+
+      const apiResponse = await request.post(`${apiBaseUrl}/api/ci`, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${apiToken}`,
         },
         data: {
           name: ciName,
@@ -72,9 +78,14 @@ test.describe('配置项详情测试', () => {
           environment: 'production',
         },
       })
+
+      if (!apiResponse.ok()) {
+        throw new Error(`创建测试 CI 失败: ${apiResponse.status()}`)
+      }
+
       const apiData = await apiResponse.json()
       fullModeTestCI = { id: apiData.data.id, name: ciName }
-      console.log(`Full 模式：创建测试 CI, id=${fullModeTestCI.id}`)
+      console.log(`[ci-detail.spec] Full 模式：创建测试 CI 成功, id=${fullModeTestCI.id}`)
       return
     }
 
@@ -138,12 +149,8 @@ test.describe('配置项详情测试', () => {
       await route.continue()
     })
 
-    loginPage = new LoginPage(page)
     ciDetailPage = new CIDetailPage(page)
 
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
   })
 
   test('CI-006: 查看配置项详细信息', async () => {

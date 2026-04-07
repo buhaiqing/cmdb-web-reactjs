@@ -1,12 +1,10 @@
 import { test, expect } from '@playwright/test'
-import { LoginPage } from './pages/LoginPage'
 import { ChangeRequestPage } from './pages/ChangeRequestPage'
 import { isMockMode, isFullMode, setupFallbackMocks } from './setup/test-config'
 import { setupMockRoutes } from './setup/mock-routes'
 import { generateTestData, generateTestId } from './setup/test-data'
 
 test.describe('变更管理测试', () => {
-  let loginPage: LoginPage
   let changeRequestPage: ChangeRequestPage
   let testId: string
 
@@ -24,12 +22,8 @@ test.describe('变更管理测试', () => {
       await setupFallbackMocks(page)
     }
 
-    loginPage = new LoginPage(page)
     changeRequestPage = new ChangeRequestPage(page)
 
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
   })
 
   test.afterEach(() => {

@@ -1,148 +1,29 @@
 import { test, expect } from '@playwright/test'
-import { isMockMode, isFullMode, setupCommonMocks, setupFallbackMocks } from './setup/test-config'
-import { LoginPage } from './pages/LoginPage'
+import { isMockMode, isFullMode, setupFallbackMocks } from './setup/test-config'
 import { CICreatePage } from './pages/CICreatePage'
 import { CIListPage } from './pages/CIListPage'
 
 test.describe('配置项创建测试', () => {
-  let loginPage: LoginPage
   let ciCreatePage: CICreatePage
   let ciListPage: CIListPage
 
   test.beforeEach(async ({ page }) => {
+    console.log('[ci-create.spec] beforeEach 开始')
     // 初始化页面对象
-    loginPage = new LoginPage(page)
     ciCreatePage = new CICreatePage(page)
     ciListPage = new CIListPage(page)
 
-    // 只在 mock 模式下设置拦截器
+    // 只在 mock 模式下设置特定的 Mock 路由
     if (isMockMode()) {
-      // 设置通用的 Mock 路由（认证 + Dashboard）
-      await setupCommonMocks(page)
-
-      // 统一设置所有 API 请求的 Mock 处理
-      await page.route('**/api/**', async (route) => {
-        const url = route.request().url()
-        const method = route.request().method()
-        console.log('拦截到 API 请求:', url, method)
-        
-        // 处理认证请求
-        if (url.includes('/api/auth/')) {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-              success: true,
-              data: {
-                token: 'mock-jwt-token-' + Date.now(),
-                user: {
-                  id: '1',
-                  username: 'admin',
-                  email: 'admin@example.com',
-                  role: 'admin',
-                  permissions: ['*'],
-                },
-              },
-            }),
-          })
-          console.log('处理认证请求成功')
-          return
-        }
-
-        // 处理 CI 请求
-        if (url.includes('/api/ci')) {
-          if (method === 'POST') {
-            const requestBody = JSON.parse(route.request().postData() || '{}')
-            await route.fulfill({
-              status: 200,
-              contentType: 'application/json',
-              body: JSON.stringify({
-                success: true,
-                data: {
-                  id: 'new-ci-' + Date.now(),
-                  ...requestBody,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                  status: 'active',
-                },
-              }),
-            })
-            console.log('处理 POST /api/ci 请求成功')
-          } else if (method === 'GET') {
-            await route.fulfill({
-              status: 200,
-              contentType: 'application/json',
-              body: JSON.stringify({
-                success: true,
-                data: {
-                  items: [],
-                  total: 0,
-                },
-              }),
-            })
-            console.log('处理 GET /api/ci 请求成功')
-          } else {
-            // 其他方法的处理
-            await route.fulfill({
-              status: 200,
-              contentType: 'application/json',
-              body: JSON.stringify({
-                success: true,
-                data: null,
-              }),
-            })
-            console.log('处理其他 CI 请求成功')
-          }
-          return
-        }
-
-        // 处理 Dashboard 请求
-        if (url.includes('/api/dashboard/')) {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-              success: true,
-              data: {
-                server: 0,
-                database: 0,
-                middleware: 0,
-                container: 0,
-                changePending: 0,
-              },
-            }),
-          })
-          console.log('处理 Dashboard 请求成功')
-          return
-        }
-
-        // 处理 Changes 请求
-        if (url.includes('/api/changes/')) {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-              success: true,
-              data: [],
-            }),
-          })
-          console.log('处理 Changes 请求成功')
-          return
-        }
-
-        // 其他请求继续
-        console.log('继续处理其他请求:', url)
-        await route.continue()
-      })
+      console.log('[ci-create.spec] Mock 模式：设置 CI 相关路由')
+      // CI 相关 Mock 已在 test-config.ts 中统一设置，这里无需重复
     } else if (isFullMode()) {
-      // 在 full 模式下设置 fallback mocks
+      console.log('[ci-create.spec] Full 模式：设置 fallback mocks')
       await setupFallbackMocks(page)
     }
 
-    // 无论是否是 mock 模式，都执行登录操作
-    await loginPage.goto()
-    await loginPage.login('admin', 'admin123')
-    await loginPage.waitForLoginSuccess()
+    // 认证由 project dependency 处理，无需重复登录
+    console.log('[ci-create.spec] beforeEach 完成（认证由 setup 处理）')
   })
 
   test('CI-001: 创建配置项表单可见性', async () => {

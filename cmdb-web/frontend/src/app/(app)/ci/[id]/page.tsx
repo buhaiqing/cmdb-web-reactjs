@@ -171,11 +171,11 @@ export default function CIDetailPage() {
               <Descriptions column={2} bordered>
                 <Descriptions.Item label="名称"><span data-testid="ci-detail-name">{ci.name}</span></Descriptions.Item>
                 <Descriptions.Item label="类型">
-                  <span data-testid="ci-detail-type"><Tag data-testid={`ci-detail-type-tag-${ci.type}`}>{ciTypeOptions[ci.type] || ci.type}</Tag></span>
+                  <span data-testid="ci-detail-type"><Tag data-testid={`ci-detail-type-tag-${ci.type}`}>{(ciTypeOptions as Record<string, string>)[ci.type] || ci.type}</Tag></span>
                 </Descriptions.Item>
                 <Descriptions.Item label="状态">
-                  <span data-testid="ci-detail-status"><Tag color={ciStatusOptions[ci.status]?.color} data-testid={`ci-detail-status-tag-${ci.status}`}>
-                    {ciStatusOptions[ci.status]?.label || ci.status}
+                  <span data-testid="ci-detail-status"><Tag color={(ciStatusOptions as Record<string, { color: string; label: string }>)[ci.status]?.color} data-testid={`ci-detail-status-tag-${ci.status}`}>
+                    {(ciStatusOptions as Record<string, { color: string; label: string }>)[ci.status]?.label || ci.status}
                   </Tag></span>
                 </Descriptions.Item>
                 <Descriptions.Item label="IP地址"><span data-testid="ci-detail-ip">{ci.ip || '-'}</span></Descriptions.Item>

@@ -11,6 +11,7 @@ import {
   SafetyOutlined,
   AuditOutlined,
   TeamOutlined,
+  TagsOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { useLayoutStore } from '@/stores/layout'
@@ -39,6 +40,8 @@ const menuList: MenuItem[] = [
     children: [
       { key: '/ci/list', label: '配置项列表', path: '/ci/list' },
       { key: '/ci/create', label: '创建配置项', path: '/ci/create' },
+      { key: '/ci/types', label: '类型管理', path: '/ci/types' },
+      { key: '/ci/tags', label: '标签管理', path: '/ci/tags' },
     ],
   },
   {
@@ -66,6 +69,7 @@ const menuList: MenuItem[] = [
       { key: '/system/user', label: '用户列表', path: '/system/user' },
       { key: '/system/role', label: '角色列表', path: '/system/role' },
       { key: '/system/audit', label: '审计日志', path: '/system/audit' },
+      { key: '/system/notification', label: '通知中心', path: '/system/notification' },
     ],
   },
 ]
