@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test'
+import { expect, Page } from '@playwright/test'
 
 export class NotificationPage {
-  constructor(private page: any) {}
+  constructor(private page: Page) {}
 
   async goto() {
     await this.page.goto('/system/notification')

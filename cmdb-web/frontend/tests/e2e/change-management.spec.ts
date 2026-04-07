@@ -8,7 +8,11 @@ test.describe('变更管理测试', () => {
   let changeRequestPage: ChangeRequestPage
   let testId: string
 
-  test.beforeEach(async ({ page }) => {
+  // Full 模式下通过 API 创建的测试变更请求
+  let fullModeTestChange: { id: string; title: string } | null = null
+  let apiToken: string | null = null
+
+  test.beforeEach(async ({ page, request }) => {
     // 生成唯一的测试 ID
     testId = generateTestId('change')
     console.log(`开始测试: ${testId}`)
@@ -20,6 +24,21 @@ test.describe('变更管理测试', () => {
     } else if (isFullMode()) {
       // 在 full 模式下设置 fallback mocks
       await setupFallbackMocks(page)
+
+      // Full 模式：通过 API 登录获取 token
+      const apiBaseUrl = 'http://127.0.0.1:8000'
+      console.log('[change-management.spec] Full 模式：API 登录获取 token')
+      
+      const loginResponse = await request.post(`${apiBaseUrl}/api/auth/login`, {
+        headers: { 'Content-Type': 'application/json' },
+        data: { username: 'admin', password: 'admin123' },
+      })
+
+      if (loginResponse.ok()) {
+        const loginData = await loginResponse.json()
+        apiToken = loginData.data.token
+        console.log('[change-management.spec] Full 模式：API 登录成功')
+      }
     }
 
     changeRequestPage = new ChangeRequestPage(page)
@@ -45,16 +64,80 @@ test.describe('变更管理测试', () => {
     await changeRequestPage.expectCreateSuccess()
   })
 
-  test('CH-002: 查看变更请求详情', async () => {
-    await changeRequestPage.gotoDetail('change-001')
+  test('CH-002: 查看变更请求详情', async ({ page, request }) => {
+    // 获取测试变更请求 ID
+    let changeId: string
+
+    if (isFullMode() && apiToken) {
+      // Full 模式：先通过 API 创建一个变更请求
+      const apiBaseUrl = 'http://127.0.0.1:8000'
+      const changeTitle = '测试变更详情-' + Date.now()
+      
+      // 先创建一个 CI
+      const ciResponse = await request.post(`${apiBaseUrl}/api/ci`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`,
+        },
+        data: {
+          name: '测试服务器-详情-' + Date.now(),
+          type: 'server',
+          ip: '192.168.1.100',
+          project: '测试项目',
+          environment: 'production',
+        },
+      })
+
+      if (!ciResponse.ok()) {
+        throw new Error('创建测试 CI 失败')
+      }
+
+      const ciData = await ciResponse.json()
+      const ciId = ciData.data.id
+      console.log(`[CH-002] Full 模式：创建测试 CI 成功, id=${ciId}`)
+
+      // 创建变更请求（使用 Go 后端期望的字段名）
+      const changeResponse = await request.post(`${apiBaseUrl}/api/changes`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`,
+        },
+        data: {
+          title: changeTitle,
+          description: '这是一个测试变更请求的描述',
+          ci_id: ciId,
+          reason: '测试变更原因',
+          plan: '测试变更计划',
+        },
+      })
+
+      if (!changeResponse.ok()) {
+        const errorText = await changeResponse.text()
+        console.error(`[CH-002] 创建变更请求失败: ${changeResponse.status()} - ${errorText}`)
+        throw new Error('创建测试变更请求失败')
+      }
+
+      const changeData = await changeResponse.json()
+      changeId = changeData.data.id
+      fullModeTestChange = { id: changeId, title: changeTitle }
+      console.log(`[CH-002] Full 模式：创建测试变更请求成功, id=${changeId}`)
+    } else {
+      // Mock 模式：使用预设的 ID
+      changeId = 'change-001'
+    }
+
+    await changeRequestPage.gotoDetail(changeId)
     await changeRequestPage.expectDetailVisible()
 
-    await changeRequestPage.expectChangeDataVisible({
-      title: '测试变更请求',
-      ciId: '测试服务器-01',
-      changeType: '更新配置',
-      description: '这是一个测试变更请求的描述'
-    })
+    // Mock 模式下验证预设数据
+    if (isMockMode()) {
+      await changeRequestPage.expectChangeDataVisible({
+        title: '测试变更请求',
+        ciId: '测试服务器-01',
+        changeType: '更新配置',
+        description: '这是一个测试变更请求的描述'
+      })
+    }
   })
 
   test('CH-003: 变更状态流转 - 待审批到已批准', async () => {
@@ -81,7 +164,7 @@ test.describe('变更管理测试', () => {
 
     // 筛选待审批状态
     await changeRequestPage.filterByStatus('pending')
-    await page.waitForTimeout(500)
+    await expect(page.locator('[data-testid="table-change-list"]')).toBeVisible({ timeout: 15000 })
 
     // 验证列表中只显示待审批的变更
     const rows = page.locator('[data-testid="table-change-list"] tbody tr')

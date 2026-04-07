@@ -129,9 +129,7 @@ export class CIListPage {
     console.log(`验证配置项存在: ${name}...`)
     try {
       await this.searchCI(name)
-      
-      // 等待搜索结果
-      await this.page.waitForTimeout(1000)
+      await this.page.waitForSelector('[data-testid="table-ci-list"]', { timeout: 15000, state: 'visible' })
       
       const ciRow = this.page.locator(`text=${name}`).first()
       await expect(ciRow).toBeVisible({ timeout: 15000 })
@@ -151,9 +149,7 @@ export class CIListPage {
     console.log(`验证配置项不存在: ${name}...`)
     try {
       await this.searchCI(name)
-      
-      // 等待搜索结果
-      await this.page.waitForTimeout(1000)
+      await this.page.waitForSelector('[data-testid="table-ci-list"]', { timeout: 15000, state: 'visible' })
       
       // 检查空状态或表格中不包含该名称
       const emptyState = this.page.locator('.ant-empty')

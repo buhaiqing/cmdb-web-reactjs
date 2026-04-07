@@ -677,6 +677,15 @@ test.describe('CMDB 端到端测试', () => {
       })
     }
 
+    // 确保回到未登录状态，避免复用已登录会话导致找不到登录表单
+    await page.context().clearCookies()
+    await page.goto('/login')
+    await page.evaluate(() => {
+      localStorage.clear()
+      sessionStorage.clear()
+    })
+    await page.goto('/login')
+
     await loginPage.login('user', 'user123')
     await appLayout.expectUserLoggedIn('user')
   })

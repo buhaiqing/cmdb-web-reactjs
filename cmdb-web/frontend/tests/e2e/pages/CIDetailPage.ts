@@ -64,9 +64,9 @@ export class CIDetailPage {
       // 点击删除按钮（将弹出 Ant Design Modal）
       await this.page.click('[data-testid="button-ci-delete"]')
 
-      // 等待 Modal 出现并点击确认（使用索引选择第一个按钮，通常是确定按钮）
-      await this.page.waitForSelector('.ant-modal-confirm .ant-modal-confirm-btns button', { timeout: 15000, state: 'visible' })
-      await this.page.locator('.ant-modal-confirm .ant-modal-confirm-btns button').nth(1).click()
+      // 等待 Modal 出现并点击确认按钮（兼容文案中空格）
+      await this.page.waitForSelector('.ant-modal-confirm', { timeout: 15000, state: 'visible' })
+      await this.page.locator('.ant-modal-confirm').getByRole('button', { name: /确\s*认|确\s*定/ }).click({ force: true })
     } catch (error) {
       // 如果删除按钮不可见，可能是配置项不存在或已被删除
       // 检查是否显示错误信息

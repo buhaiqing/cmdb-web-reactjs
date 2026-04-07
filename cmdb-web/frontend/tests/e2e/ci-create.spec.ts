@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { isMockMode, isFullMode, setupFallbackMocks } from './setup/test-config'
 import { CICreatePage } from './pages/CICreatePage'
 import { CIListPage } from './pages/CIListPage'
+import { setupMockRoutes } from './setup/mock-routes'
 
 test.describe('配置项创建测试', () => {
   let ciCreatePage: CICreatePage
@@ -16,7 +17,8 @@ test.describe('配置项创建测试', () => {
     // 只在 mock 模式下设置特定的 Mock 路由
     if (isMockMode()) {
       console.log('[ci-create.spec] Mock 模式：设置 CI 相关路由')
-      // CI 相关 Mock 已在 test-config.ts 中统一设置，这里无需重复
+      // 统一注册 API mock（包含 /api/ci 的创建与查询），避免创建后不跳转
+      await setupMockRoutes(page)
     } else if (isFullMode()) {
       console.log('[ci-create.spec] Full 模式：设置 fallback mocks')
       await setupFallbackMocks(page)

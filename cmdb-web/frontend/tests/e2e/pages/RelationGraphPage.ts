@@ -65,36 +65,24 @@ export class RelationGraphPage {
   }
 
   async clickNode(nodeId: string) {
-    try {
-      console.log(`点击节点: ${nodeId}...`)
-      // 通过evaluate调用store的setSelectedNode
-      await this.page.evaluate((id) => {
-        // 触发一个自定义事件，让页面处理
-        window.dispatchEvent(new CustomEvent('test-node-click', { detail: { nodeId: id } }))
-      }, nodeId)
-      
-      // 等待详情面板出现，增加等待时间
-      await this.page.waitForTimeout(2000)
-      // 等待节点详情卡片可见
-      await this.page.waitForSelector('[data-testid="card-node-detail"]', { timeout: 15000, state: 'visible' })
-      console.log('✓ 节点详情卡片可见')
-    } catch (error) {
-      // 如果点击节点失败，记录错误但继续执行
-      console.log('点击节点失败，继续执行测试:', error)
-    }
+    console.log(`点击节点: ${nodeId}...`)
+    // 通过evaluate调用store的setSelectedNode
+    await this.page.evaluate((id) => {
+      // 触发一个自定义事件，让页面处理
+      window.dispatchEvent(new CustomEvent('test-node-click', { detail: { nodeId: id } }))
+    }, nodeId)
+    
+    // 等待节点详情卡片可见，避免固定睡眠
+    await this.page.waitForSelector('[data-testid="card-node-detail"]', { timeout: 15000, state: 'visible' })
+    console.log('✓ 节点详情卡片可见')
   }
 
   async expectNodeSelected(nodeId: string) {
-    try {
-      console.log(`验证节点 ${nodeId} 被选中...`)
-      // 增加超时时间，确保节点详情卡片有足够时间加载
-      await this.page.waitForSelector('[data-testid="card-node-detail"]', { timeout: 15000, state: 'visible' })
-      console.log('✓ 节点详情卡片可见')
-      await expect(this.page.locator('[data-testid="card-node-detail"]')).toBeVisible({ timeout: 15000 })
-    } catch (error) {
-      // 如果节点详情卡片不可见，记录错误但继续执行
-      console.log('节点详情卡片不可见，继续执行测试:', error)
-    }
+    console.log(`验证节点 ${nodeId} 被选中...`)
+    // 增加超时时间，确保节点详情卡片有足够时间加载
+    await this.page.waitForSelector('[data-testid="card-node-detail"]', { timeout: 15000, state: 'visible' })
+    console.log('✓ 节点详情卡片可见')
+    await expect(this.page.locator('[data-testid="card-node-detail"]')).toBeVisible({ timeout: 15000 })
   }
 
   async searchNode(searchText: string) {
@@ -138,53 +126,35 @@ export class RelationGraphPage {
   }
 
   async zoomIn() {
-    try {
-      console.log('放大视图...')
-      await this.page.waitForSelector('[data-testid="button-zoom-in"]', { timeout: 15000, state: 'visible' })
-      console.log('✓ 放大按钮可见')
-      await this.page.click('[data-testid="button-zoom-in"]', { timeout: 30000 })
-      console.log('✓ 点击放大按钮')
-    } catch (error) {
-      console.log('点击放大按钮失败，继续执行测试:', error)
-    }
+    console.log('放大视图...')
+    await this.page.waitForSelector('[data-testid="button-zoom-in"]', { timeout: 15000, state: 'visible' })
+    console.log('✓ 放大按钮可见')
+    await this.page.click('[data-testid="button-zoom-in"]', { timeout: 30000 })
+    console.log('✓ 点击放大按钮')
   }
 
   async zoomOut() {
-    try {
-      console.log('缩小视图...')
-      await this.page.waitForSelector('[data-testid="button-zoom-out"]', { timeout: 15000, state: 'visible' })
-      console.log('✓ 缩小按钮可见')
-      await this.page.click('[data-testid="button-zoom-out"]', { timeout: 30000 })
-      console.log('✓ 点击缩小按钮')
-    } catch (error) {
-      console.log('点击缩小按钮失败，继续执行测试:', error)
-    }
+    console.log('缩小视图...')
+    await this.page.waitForSelector('[data-testid="button-zoom-out"]', { timeout: 15000, state: 'visible' })
+    console.log('✓ 缩小按钮可见')
+    await this.page.click('[data-testid="button-zoom-out"]', { timeout: 30000 })
+    console.log('✓ 点击缩小按钮')
   }
 
   async resetView() {
-    try {
-      console.log('重置视图...')
-      await this.page.waitForSelector('[data-testid="button-reset-view"]', { timeout: 15000, state: 'visible' })
-      console.log('✓ 重置视图按钮可见')
-      await this.page.click('[data-testid="button-reset-view"]', { timeout: 30000 })
-      console.log('✓ 点击重置视图按钮')
-    } catch (error) {
-      // 如果点击失败，记录错误但继续执行
-      console.log('点击重置视图按钮失败，继续执行测试:', error)
-    }
+    console.log('重置视图...')
+    await this.page.waitForSelector('[data-testid="button-reset-view"]', { timeout: 15000, state: 'visible' })
+    console.log('✓ 重置视图按钮可见')
+    await this.page.click('[data-testid="button-reset-view"]', { timeout: 30000 })
+    console.log('✓ 点击重置视图按钮')
   }
 
   async toggleFullscreen() {
-    try {
-      console.log('切换全屏...')
-      await this.page.waitForSelector('[data-testid="button-fullscreen"]', { timeout: 15000, state: 'visible' })
-      console.log('✓ 全屏按钮可见')
-      await this.page.click('[data-testid="button-fullscreen"]', { timeout: 30000 })
-      console.log('✓ 点击全屏按钮')
-    } catch (error) {
-      // 如果点击失败，记录错误但继续执行
-      console.log('点击全屏按钮失败，继续执行测试:', error)
-    }
+    console.log('切换全屏...')
+    await this.page.waitForSelector('[data-testid="button-fullscreen"]', { timeout: 15000, state: 'visible' })
+    console.log('✓ 全屏按钮可见')
+    await this.page.click('[data-testid="button-fullscreen"]', { timeout: 30000 })
+    console.log('✓ 点击全屏按钮')
   }
 
   async expectImpactAnalysisVisible() {
