@@ -170,8 +170,36 @@ test.describe('配置项删除测试', () => {
     return mockCI
   }
 
-  test('CI-016: 删除配置项显示确认对话框', async () => {
-    const testCI = getTestCI()
+  test('CI-016: 删除配置项显示确认对话框', async ({ request }) => {
+    // Full 模式下需要确保有测试 CI
+    let testCI = getTestCI()
+    
+    if (isFullMode() && !testCI) {
+      // 如果 fullModeTestCI 为空，重新创建一个
+      const apiBaseUrl = 'http://127.0.0.1:8000'
+      const ciName = '删除测试CI-' + Date.now()
+      
+      const apiResponse = await request.post(`${apiBaseUrl}/api/ci`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`,
+        },
+        data: {
+          name: ciName,
+          type: 'server',
+          ip: '192.168.1.100',
+          project: '测试项目',
+          environment: 'production',
+        },
+      })
+      
+      if (apiResponse.ok()) {
+        const apiData = await apiResponse.json()
+        testCI = { id: apiData.data.id, name: ciName }
+        console.log(`[CI-016] Full 模式：创建测试 CI 成功, id=${testCI.id}`)
+      }
+    }
+    
     await ciDetailPage.goto(testCI.id)
     await ciDetailPage.expectDetailVisible()
 
@@ -182,8 +210,36 @@ test.describe('配置项删除测试', () => {
     await ciDetailPage.expectConfirmDialog()
   })
 
-  test('CI-017: 确认删除配置项', async () => {
-    const testCI = getTestCI()
+  test('CI-017: 确认删除配置项', async ({ request }) => {
+    // Full 模式下需要确保有测试 CI
+    let testCI = getTestCI()
+    
+    if (isFullMode() && !testCI) {
+      // 如果 fullModeTestCI 为空，重新创建一个
+      const apiBaseUrl = 'http://127.0.0.1:8000'
+      const ciName = '删除测试CI-' + Date.now()
+      
+      const apiResponse = await request.post(`${apiBaseUrl}/api/ci`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`,
+        },
+        data: {
+          name: ciName,
+          type: 'server',
+          ip: '192.168.1.100',
+          project: '测试项目',
+          environment: 'production',
+        },
+      })
+      
+      if (apiResponse.ok()) {
+        const apiData = await apiResponse.json()
+        testCI = { id: apiData.data.id, name: ciName }
+        console.log(`[CI-017] Full 模式：创建测试 CI 成功, id=${testCI.id}`)
+      }
+    }
+    
     await ciDetailPage.goto(testCI.id)
     await ciDetailPage.expectDetailVisible()
 
@@ -195,8 +251,36 @@ test.describe('配置项删除测试', () => {
     await ciListPage.expectCIListVisible()
   })
 
-  test('CI-018: 取消删除操作', async () => {
-    const testCI = getTestCI()
+  test('CI-018: 取消删除操作', async ({ request }) => {
+    // Full 模式下需要确保有测试 CI
+    let testCI = getTestCI()
+    
+    if (isFullMode() && !testCI) {
+      // 如果 fullModeTestCI 为空，重新创建一个
+      const apiBaseUrl = 'http://127.0.0.1:8000'
+      const ciName = '删除测试CI-' + Date.now()
+      
+      const apiResponse = await request.post(`${apiBaseUrl}/api/ci`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`,
+        },
+        data: {
+          name: ciName,
+          type: 'server',
+          ip: '192.168.1.100',
+          project: '测试项目',
+          environment: 'production',
+        },
+      })
+      
+      if (apiResponse.ok()) {
+        const apiData = await apiResponse.json()
+        testCI = { id: apiData.data.id, name: ciName }
+        console.log(`[CI-018] Full 模式：创建测试 CI 成功, id=${testCI.id}`)
+      }
+    }
+    
     await ciDetailPage.goto(testCI.id)
     await ciDetailPage.expectDetailVisible()
 
