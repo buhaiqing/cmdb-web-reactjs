@@ -1,10 +1,12 @@
-import { test, expect, Page } from '@playwright/test'
+import { expect, Page } from '@playwright/test'
 
 export class ChangeRequestPage {
   constructor(private page: Page) {}
 
   async gotoList() {
     await this.page.goto('/change/list', { timeout: 60000, waitUntil: 'domcontentloaded' })
+    // 等待 Zustand hydration 完成 - 检查主内容区域可见
+    await this.page.waitForSelector('[data-testid="content-main"]', { timeout: 15000, state: 'visible' })
   }
 
   async gotoCreate() {
@@ -12,19 +14,25 @@ export class ChangeRequestPage {
     // 先导航到根路径，确保页面状态干净
     await this.page.goto('/', { timeout: 30000, waitUntil: 'domcontentloaded' })
     console.log('✓ 成功导航到根路径')
-    
+
     // 然后导航到变更创建页面
     await this.page.goto('/change/create', { timeout: 60000, waitUntil: 'domcontentloaded' })
     console.log('✓ 成功导航到变更创建页面')
-    
+
     // 等待页面加载完成
     await this.page.waitForLoadState('load', { timeout: 30000 })
     console.log('✓ 页面加载完成')
+
+    // 等待 Zustand hydration 完成 - 检查主内容区域可见
+    await this.page.waitForSelector('[data-testid="content-main"]', { timeout: 15000, state: 'visible' })
+    console.log('✓ 应用布局加载完成（Zustand hydration 完成）')
   }
 
   async gotoDetail(id: string) {
     // 增加超时时间，确保页面有足够时间加载
     await this.page.goto(`/change/${id}`, { timeout: 60000, waitUntil: 'domcontentloaded' })
+    // 等待 Zustand hydration 完成 - 检查主内容区域可见
+    await this.page.waitForSelector('[data-testid="content-main"]', { timeout: 15000, state: 'visible' })
   }
 
   async expectListVisible() {

@@ -29,11 +29,13 @@ test.describe('配置项创建测试', () => {
   })
 
   test('CI-001: 创建配置项表单可见性', async () => {
+    ciCreatePage.setTestId('CI-001')
     await ciCreatePage.goto()
     await ciCreatePage.expectFormVisible()
   })
 
   test('CI-002: 填写表单并提交创建配置项', async () => {
+    ciCreatePage.setTestId('CI-002')
     await ciCreatePage.goto()
     await ciCreatePage.expectFormVisible()
 
@@ -51,6 +53,7 @@ test.describe('配置项创建测试', () => {
   })
 
   test('CI-003: 验证必填字段', async () => {
+    ciCreatePage.setTestId('CI-003')
     await ciCreatePage.goto()
     await ciCreatePage.expectFormVisible()
 
@@ -62,6 +65,7 @@ test.describe('配置项创建测试', () => {
   })
 
   test('CI-004: 取消创建操作', async () => {
+    ciCreatePage.setTestId('CI-004')
     await ciCreatePage.goto()
     await ciCreatePage.expectFormVisible()
 
@@ -79,6 +83,7 @@ test.describe('配置项创建测试', () => {
   })
 
   test('CI-005: 创建成功后跳转到列表页', async () => {
+    ciCreatePage.setTestId('CI-005')
     await ciCreatePage.goto()
     await ciCreatePage.expectFormVisible()
 

@@ -5,6 +5,8 @@ export class NotificationPage {
 
   async goto() {
     await this.page.goto('/system/notification')
+    // 等待 Zustand hydration 完成 - 检查主内容区域可见
+    await this.page.waitForSelector('[data-testid="content-main"]', { timeout: 15000, state: 'visible' })
   }
 
   async expectPageVisible() {

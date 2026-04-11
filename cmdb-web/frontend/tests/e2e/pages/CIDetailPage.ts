@@ -8,6 +8,11 @@ export class CIDetailPage {
     // 增加超时时间，确保页面有足够时间加载
     await this.page.goto(`/ci/${id}`, { timeout: 30000, waitUntil: 'domcontentloaded' })
     console.log(`[CIDetailPage.goto] ✓ 导航完成，URL: ${this.page.url()}`)
+
+    // 等待 Zustand hydration 完成 - 检查主内容区域可见
+    // (app)/layout.tsx 在 hydration 完成前显示 Spin 加载状态
+    await this.page.waitForSelector('[data-testid="content-main"]', { timeout: 15000, state: 'visible' })
+    console.log(`[CIDetailPage.goto] ✓ 应用布局加载完成（Zustand hydration 完成）`)
   }
 
   async expectDetailVisible() {

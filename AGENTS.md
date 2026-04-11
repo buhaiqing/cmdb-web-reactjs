@@ -1,6 +1,6 @@
 # CMDB-WEB PROJECT KNOWLEDGE BASE
 
-**Generated:** 2025-03-29
+**Generated:** 2025-04-11
 **Commit:** current
 **Branch:** main
 
@@ -8,7 +8,7 @@
 
 CMDB (Configuration Management Database) web application with React 19 frontend and Go backend. Manages configuration items, change requests, and audit logs for IT infrastructure.
 
-**Stack**: React 19 + Next.js 15 (App Router) + TypeScript + Zustand + Ant Design 5.x (frontend) | Go + Gin + GORM (backend)
+**Stack**: React 19 + Next.js 15 (App Router) + TypeScript + Zustand + Ant Design 6.x (frontend) | Go + Gin + GORM (backend)
 
 ## STRUCTURE
 
@@ -64,7 +64,7 @@ cmdb-web/
 
 ## CONVENTIONS
 
-### Frontend (React 18 + Next.js 14)
+### Frontend (React 19 + Next.js 15)
 - **Components**: Use React Server Components by default, add `'use client'` directive for interactivity
 - **State Management**: Zustand stores with `persist` middleware for global state
 - **Styling**: CSS Modules (`.module.css`) + Ant Design Design Tokens
@@ -120,7 +120,44 @@ go build -o cmdb-backend cmd/main.go
 
 - **Auth**: NextAuth.js with JWT strategy, sessions stored in HttpOnly cookies
 - **State**: Zustand stores persist to localStorage via `persist` middleware
-- **UI Library**: Ant Design 5.x with ConfigProvider for theme customization
+- **UI Library**: Ant Design 6.x with ConfigProvider for theme customization
 - **API Calls**: Use `apiRequest` utility in `lib/api.ts` for consistent error handling
 - **Testing**: Frontend uses Playwright E2E tests with Page Object Model; backend uses Go testing with isolated SQLite. See [测试最佳实践](docs/test-best-practices.md) for detailed testing guidelines including Fail-Fast mode, test isolation, and API mocking strategies.
 - **CI**: Test artifacts should be gitignored; use `.gitignore` rules for generated files
+- **Data-testid**: Critical for E2E testing - never modify without test updates
+
+## TECHNOLOGY STACK UPGRADE (2025-04-11)
+
+### Current Versions → Target Versions
+- Next.js: 14.2.0 → 15.x (latest stable: 15.5.15)
+- Ant Design: 5.21.0 → 6.x (latest stable: 6.3.5)
+- TypeScript: 5.6.0 → 5.x (保持)
+- @ant-design/icons: 5.4.0 → 6.x (latest stable: 6.1.1)
+- @ant-design/nextjs-registry: 1.0.1 → 1.3.0
+
+
+#### React 19 Breaking Changes
+2. use() hook for reading resources in render
+1. Ref forwarding changes - automatic in many cases
+3. Enhanced Server Components support
+4. Deprecated lifecycle methods removed
+
+#### Next.js 15 Breaking Changes
+1. Turbopack default in development mode
+2. Async request APIs (cookies, headers, params, searchParams)
+3. Enhanced caching and fetch() behavior
+4. Node.js 18.17+ required
+1. New CSS-in-JS Design Tokens system
+
+#### Ant Design 6.x Migration
+2. Updated component APIs for several components
+3. Legacy/deprecated components removed
+4. New theme configuration approach
+
+### Migration Strategy
+1. Update package.json dependencies to target versions
+2. Handle Next.js 15 async request APIs changes
+3. Update React 19 type definitions and ref handling
+4. Migrate Ant Design components to v6 APIs
+5. PRESERVE all data-testid attributes (critical for E2E tests)
+6. Update E2E tests to ensure mock and full mode compatibility

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect } from '@playwright/test'
 
 export class TagManagementPage {
   constructor(private page: any) {}
@@ -6,6 +6,8 @@ export class TagManagementPage {
   async goto() {
     await this.page.goto('/ci/tags')
     await this.page.waitForURL('**/ci/tags')
+    // 等待 Zustand hydration 完成 - 检查主内容区域可见
+    await this.page.waitForSelector('[data-testid="content-main"]', { timeout: 15000, state: 'visible' })
     await this.page.waitForSelector('[data-testid="page-tag-management"]', { state: 'visible', timeout: 10000 })
   }
 

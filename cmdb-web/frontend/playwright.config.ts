@@ -14,18 +14,20 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     actionTimeout: 30000,
     navigationTimeout: 30000,
+    // 使用系统已安装的 Chrome 浏览器
+    channel: 'chrome',
   },
   projects: [
     // Setup project - 执行登录并保存 storage state
     {
-      name: 'setup',
-      testMatch: '**/setup/auth.setup.ts',
+     name: 'setup',
+     testMatch: '**/setup/auth.setup.ts',
       use: { ...devices['Desktop Chrome'] },
-    },
-    // 登录页面测试（不需要 setup，独立运行）
-    {
-      name: 'login',
-      testMatch: '**/login.spec.ts',
+   },
+   // 登录页面测试（不需要 setup，独立运行）
+   {
+     name: 'login',
+     testMatch: '**/login.spec.ts',
       use: { ...devices['Desktop Chrome'] },
     },
     // 其他项目依赖 setup，复用登录状态

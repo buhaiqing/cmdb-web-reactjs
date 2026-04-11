@@ -250,11 +250,11 @@ export default function AuditLogPage() {
             导出
           </Button>
           <Button 
-            icon={<ReloadOutlined />} 
-            onClick={loadData}
-            loading={loading}
-            data-testid="button-audit-refresh"
-          >
+           icon={<ReloadOutlined />}
+            onClick={() => loadData()}
+           loading={loading}
+           data-testid="button-audit-refresh"
+         >
             刷新
           </Button>
         </Space>

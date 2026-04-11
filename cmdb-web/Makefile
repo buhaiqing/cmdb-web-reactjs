@@ -1,4 +1,4 @@
-.PHONY: help install dev test test-e2e-ui test-e2e-headed test-e2e-mock test-e2e-failed test-full-failed test-report test-full build clean kill-ports
+.PHONY: help install dev test test-e2e-ui test-e2e-headed test-e2e-mock test-e2e-failed test-full-failed test-report test-full build clean kill-ports test-auto-fix
 
 # 默认目标
 help:
@@ -9,6 +9,7 @@ help:
 	@echo "  make dev           - 启动开发服务器 (端口 3000)"
 	@echo "  make test-e2e-mock  - 运行前端 E2E 测试 (使用 Playwright 路由拦截)"
 	@echo "  make test-e2e-failed - 只运行上次失败的 E2E 测试用例 (mock 模式)"
+	@echo "  make test-auto-fix  - 自动修复失败的测试并重复执行（最多3次）"
 	@echo "  make test-e2e-ui   - 运行前端 E2E 测试 (UI 模式)"
 	@echo "  make test-e2e-headed - 运行前端 E2E 测试 (有头模式)"
 	@echo "  make test-report   - 查看测试报告"
@@ -237,3 +238,8 @@ kill-ports:
 	@lsof -ti:3002 | xargs kill -9 2>/dev/null || echo "端口 3002 无进程"
 	@lsof -ti:9323 | xargs kill -9 2>/dev/null || echo "端口 9323 无进程"
 	@echo "端口已清理"
+
+# 自动修复失败的测试并重复执行（最多3次）
+test-auto-fix:
+	@chmod +x scripts/test-auto-fix.sh
+	@./scripts/test-auto-fix.sh

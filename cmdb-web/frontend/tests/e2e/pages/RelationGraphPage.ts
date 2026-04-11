@@ -9,14 +9,19 @@ export class RelationGraphPage {
       // 先导航到根路径，确保页面状态干净
       await this.page.goto('/', { timeout: 30000, waitUntil: 'domcontentloaded' })
       console.log('✓ 成功导航到根路径')
-      
+
       // 然后导航到关系图谱页面
       await this.page.goto('/relation/graph', { timeout: 60000, waitUntil: 'domcontentloaded' })
       console.log('✓ 成功导航到关系图谱页面')
-      
-      // 等待页面加载完成
-      await this.page.waitForLoadState('load', { timeout: 30000 })
-      console.log('✓ 页面加载完成')
+
+      // 等待 DOM 加载完成即可，不要等待 load 状态（图表资源可能永远加载不完全）
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 30000 })
+      console.log('✓ 页面 DOM 加载完成')
+
+      // 等待 Zustand hydration 完成 - 检查主内容区域可见
+      // (app)/layout.tsx 在 hydration 完成前显示 Spin 加载状态
+      await this.page.waitForSelector('[data-testid="content-main"]', { timeout: 15000, state: 'visible' })
+      console.log('✓ 应用布局加载完成（Zustand hydration 完成）')
     } catch (error) {
       console.error('❌ 导航到关系图谱页面失败:', error)
       throw error

@@ -16,6 +16,11 @@ export class CIListPage {
     try {
       await this.page.goto('/ci/list', { timeout: 30000, waitUntil: 'domcontentloaded' })
       console.log('[CIListPage.goto] ✓ 成功导航到配置项列表页面，URL:', this.page.url())
+
+      // 等待 Zustand hydration 完成 - 检查主内容区域可见
+      // (app)/layout.tsx 在 hydration 完成前显示 Spin 加载状态
+      await this.page.waitForSelector('[data-testid="content-main"]', { timeout: 15000, state: 'visible' })
+      console.log('[CIListPage.goto] ✓ 应用布局加载完成（Zustand hydration 完成）')
     } catch (error) {
       console.error('[CIListPage.goto] ❌ 导航到配置项列表页面失败:', error)
       throw error

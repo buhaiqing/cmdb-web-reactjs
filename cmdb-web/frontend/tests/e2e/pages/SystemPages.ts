@@ -6,6 +6,8 @@ export class SystemUserPage {
   async goto() {
     await this.page.goto('/system/user')
     await this.page.waitForLoadState('networkidle')
+    // 等待 Zustand hydration 完成 - 检查主内容区域可见
+    await this.page.waitForSelector('[data-testid="content-main"]', { timeout: 15000, state: 'visible' })
   }
 
   async expectUserListVisible() {
@@ -20,6 +22,8 @@ export class SystemRolePage {
   async goto() {
     await this.page.goto('/system/role')
     await this.page.waitForLoadState('networkidle')
+    // 等待 Zustand hydration 完成 - 检查主内容区域可见
+    await this.page.waitForSelector('[data-testid="content-main"]', { timeout: 15000, state: 'visible' })
   }
 
   async expectRoleListVisible() {
@@ -34,6 +38,8 @@ export class SystemAuditPage {
   async goto() {
     await this.page.goto('/system/audit')
     await this.page.waitForLoadState('networkidle')
+    // 等待 Zustand hydration 完成 - 检查主内容区域可见
+    await this.page.waitForSelector('[data-testid="content-main"]', { timeout: 15000, state: 'visible' })
   }
 
   async expectAuditLogVisible() {
