@@ -15,7 +15,7 @@
 - **开发效率**: AI 生成代码速度比人工编码提升 5-10 倍
 - **代码质量**: 生成代码符合最佳实践，包含完整的错误处理和类型定义
 - **测试覆盖率**: AI 生成的测试用例覆盖所有核心功能，测试通过率 100%
-- **技术栈适配**: 支持现代技术栈（React 18 + Next.js 14 + Gin + Go）
+- **技术栈适配**: 支持现代技术栈（React 19 + Next.js 15 + Gin + Go）
 - **可维护性**: 生成代码结构清晰，注释完善，易于维护和扩展
 
 ---
@@ -24,15 +24,15 @@
 
 ## 项目简介
 
-基于 React 18 + Next.js 14 + TypeScript + Zustand + Ant Design 5.x 构建的现代化 CMDB 系统，用于管理 IT 基础设施的配置项、变更请求和审计日志。
+基于 React 19 + Next.js 15 + TypeScript + Zustand + Ant Design 6.x 构建的现代化 CMDB 系统，用于管理 IT 基础设施的配置项、变更请求和审计日志。
 
 ## 技术栈
 
 ### 前端
-- **框架**: React 18 + Next.js 14 (App Router)
+- **框架**: React 19 + Next.js 15 (App Router)
 - **语言**: TypeScript
 - **状态管理**: Zustand
-- **UI 组件**: Ant Design 5.x
+- **UI 组件**: Ant Design 6.x
 - **样式**: CSS Modules + Ant Design Design Tokens
 - **认证**: JWT token (使用 js-cookie 存储)
 - **测试**: Playwright (E2E)
