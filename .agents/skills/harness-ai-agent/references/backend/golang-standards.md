@@ -1,21 +1,20 @@
 # Go 后端开发规范
 
-> **版本**: Go 1.22+  
-> **框架**: Gin / Echo / Fiber  
-> **标准**: 企业级生产规范
+> **Go 1.25+** | **Gin / Echo / Fiber** | 企业级生产规范
+> 融合 Go 社区最佳实践与一线工程经验，作为团队编码规范与代码评审基准。
 
 ---
 
 ## 1. 技术栈
 
-| 类别 | 技术选型 | 版本 |
-|------|----------|------|
-| 语言 | Go | 1.22+ |
-| Web框架 | Gin / Echo / Fiber | latest |
+| 类别 | 选型 | 版本 |
+|------|------|------|
+| 语言 | Go | 1.25+ |
+| Web 框架 | Gin / Echo / Fiber | latest |
 | ORM | GORM / Ent | latest |
-| 数据库驱动 | pgx / go-redis | latest |
-| 测试 | testify + ginkgo | latest |
-| 日志 | zap / zerolog | latest |
+| 数据库驱动 | pgx / go-redis / modernc.org/sqlite（纯 Go，无需 CGO） | latest |
+| 测试 | testing + testify + testing/synctest | latest |
+| 日志 | slog（首选，stdlib）/ zap / zerolog | latest |
 | 配置 | viper | latest |
 | 验证 | go-playground/validator | latest |
 | 文档 | swaggo/swag | latest |
@@ -30,118 +29,122 @@
 ```
 project/
 ├── cmd/
-│   ├── api/                    # HTTP API 入口
-│   │   └── main.go
-│   ├── worker/                 # 后台任务入口
-│   │   └── main.go
-│   └── migrate/                # 数据库迁移
-│       └── main.go
-├── internal/                   # 私有代码
-│   ├── config/                 # 配置
-│   │   └── config.go
-│   ├── domain/                 # 领域模型
-│   │   ├── user.go
-│   │   └── order.go
-│   ├── repository/             # 数据访问层
-│   │   ├── user_repo.go
-│   │   └── order_repo.go
-│   ├── service/                # 业务逻辑层
-│   │   ├── user_service.go
-│   │   └── order_service.go
-│   ├── handler/                # HTTP处理器
-│   │   ├── user_handler.go
-│   │   └── order_handler.go
-│   ├── middleware/             # 中间件
-│   │   ├── auth.go
-│   │   ├── logging.go
-│   │   └── recovery.go
-│   └── pkg/                    # 内部工具包
-│       ├── logger/
-│       ├── validator/
-│       └── errors/
-├── pkg/                        # 公共库 (可被外部导入)
-│   ├── utils/
-│   └── constants/
-├── api/                        # API定义
-│   ├── swagger/                # Swagger文档
-│   └── proto/                  # Protocol Buffers
-├── web/                        # 静态文件
-├── configs/                    # 配置文件
-│   ├── config.yaml
-│   └── config.prod.yaml
-├── deployments/                # 部署配置
-│   ├── docker/
-│   └── k8s/
-├── scripts/                    # 脚本
-├── tests/                      # 测试
-│   ├── integration/
-│   └── e2e/
-├── Makefile
-├── go.mod
-├── go.sum
-└── README.md
+│   ├── api/main.go              # HTTP API 入口
+│   ├── worker/main.go           # 后台任务入口
+│   └── migrate/main.go          # 数据库迁移
+├── internal/                    # 私有代码
+│   ├── config/                  # 配置
+│   ├── domain/                  # 领域模型
+│   ├── repository/              # 数据访问层
+│   ├── service/                 # 业务逻辑层
+│   ├── handler/                 # HTTP 处理器
+│   ├── middleware/              # 中间件
+│   └── pkg/                     # 内部工具包
+├── pkg/                         # 公共库（可被外部导入）
+├── api/                         # API 定义（swagger / proto）
+├── configs/                     # 配置文件
+├── deployments/                 # 部署配置（docker / k8s）
+├── scripts/                     # 脚本
+├── tests/                       # 集成 / E2E 测试
+├── Makefile / go.mod / go.sum
+```
+
+### 分层与依赖
+
+```
+Handler → Service → Repository → Model
+```
+
+- 单向依赖，禁止反向引用；循环依赖说明包划分有问题。
+- `cmd/main.go` 仅组装依赖树，不做业务逻辑。
+
+### 代码结构要求
+
+| 规则 | 限制 |
+|------|------|
+| 职责单一 | 每个包/文件只做一件事 |
+| 文件长度 | ≤ 300 行 |
+| 函数长度 | ≤ 50 行，超过 80 行必须拆分 |
+| 无重复代码 | 三处以上抽取公共函数/包 |
+| 显式依赖 | 构造函数注入，禁全局变量，禁 panic/recover 控制流 |
+
+---
+
+## 3. 代码风格
+
+- `gofmt` / `goimports` / `gofumpt` 统一格式化，编辑器保存时自动执行。
+- Import 分三组：标准库 → 第三方 → 本项目，组间空行，组内字母序。
+- 行宽 ≤ 120 字符。
+
+项目根目录放置 `.golangci.yml`，启用：`errcheck` `gosimple` `govet` `ineffassign` `staticcheck` `unused` `goimports` `misspell` `revive` `unconvert` `prealloc` `testifylint`
+
+推荐 `testifylint` 配置：
+```yaml
+linters-settings:
+  testifylint:
+    enable-all: true
 ```
 
 ---
 
-## 3. 代码规范
+## 4. 命名规范
 
-### 3.1 命名规范
+| 规则 | ✅ 正确 | ❌ 错误 |
+|------|--------|--------|
+| 包名全小写单数，无下划线 | `package user` | `package utils` |
+| 变量驼峰，常量大写驼峰 | `userID` / `MaxRetryCount` | `user_id` |
+| 导出 PascalCase，不导出 camelCase | `func NewClient()` | — |
+| Getter 不加 `Get` 前缀 | `func Name() string` | `func GetName()` |
+| 单方法接口 `-er` 结尾 | `Reader` / `Writer` / `Closer` | — |
+| 接口小而专注，在使用方定义 | — | 大而全接口 |
+| 缩略词全大/全小写 | `userID` / `parseURL` | `userId` / `parseUrl` |
+| 错误变量 `Err` 前缀 | `ErrNotFound` | `ErrorNotFound` |
 
 ```go
-// 包名: 小写单数
 package user
 
-// 接口名: 动词+er 或 名词+Interface
 type UserRepository interface {
     GetByID(ctx context.Context, id string) (*User, error)
 }
 
-// 结构体名: 大写驼峰
 type UserService struct {
     repo UserRepository
     log  *zap.Logger
 }
 
-// 变量名: 驼峰
-userName := "john"
-userID := "uuid"
+const MaxRetryCount = 3
 
-// 常量名: 大写下划线
-const (
-    MaxRetryCount = 3
-    DefaultTimeout = 30 * time.Second
-)
+var ErrUserNotFound = errors.New("user not found")
 
-// 错误变量: Err前缀
-var (
-    ErrUserNotFound = errors.New("user not found")
-    ErrInvalidInput = errors.New("invalid input")
-)
-
-// 私有函数/方法: 小写驼峰
-func (s *UserService) validateEmail(email string) error {
-    return nil
-}
-
-// 公有函数/方法: 大写驼峰
 func (s *UserService) CreateUser(ctx context.Context, req *CreateUserRequest) (*User, error) {
     return nil, nil
 }
+
+func (s *UserService) validateEmail(email string) error { return nil }
 ```
 
-### 3.2 错误处理
+---
+
+## 5. 注释规范
+
+- 导出符号必须 godoc 格式注释，以名称开头。
+- 简单逻辑不注释，用自解释代码；复杂逻辑解释 **why** 非 what。
+- 标记格式：`// TODO(author): reason` / `// FIXME(author): reason` / `// HACK(author): reason`
+
+---
+
+## 6. 错误处理
+
+### 原则
+
+- 错误是值，必须显式处理，**不允许多处 `_` 忽略**。
+- 中间层只返回错误不记日志（避免噪音），边界层统一处理。
+- `fmt.Errorf("context: %w", err)` 包装保留 cause chain，上层用 `errors.Is/As` 检查。
+- **panic 仅限 main/init 不可恢复启动错误**，业务逻辑一律返回 error。
+
+### AppError 类型体系
 
 ```go
-// internal/pkg/errors/errors.go
-package errors
-
-import (
-    "errors"
-    "fmt"
-)
-
-// 应用错误类型
 type AppError struct {
     Code    string `json:"code"`
     Message string `json:"message"`
@@ -156,11 +159,8 @@ func (e *AppError) Error() string {
     return e.Message
 }
 
-func (e *AppError) Unwrap() error {
-    return e.Err
-}
+func (e *AppError) Unwrap() error { return e.Err }
 
-// 错误构造函数
 func New(code, message string) *AppError {
     return &AppError{Code: code, Message: message}
 }
@@ -169,7 +169,6 @@ func Wrap(err error, code, message string) *AppError {
     return &AppError{Code: code, Message: message, Err: err}
 }
 
-// 预定义错误
 var (
     ErrNotFound     = New("NOT_FOUND", "resource not found")
     ErrInvalidInput = New("INVALID_INPUT", "invalid input")
@@ -177,48 +176,63 @@ var (
     ErrForbidden    = New("FORBIDDEN", "forbidden")
     ErrInternal     = New("INTERNAL_ERROR", "internal server error")
 )
-
-// 使用示例
-func (r *UserRepository) GetByID(ctx context.Context, id string) (*User, error) {
-    var user User
-    if err := r.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            return nil, errors.Wrap(ErrNotFound, "USER_NOT_FOUND", "user not found")
-        }
-        return nil, errors.Wrap(err, "DB_ERROR", "database error")
-    }
-    return &user, nil
-}
 ```
 
-### 3.3 Context 使用
+---
+
+## 7. 日志规范
+
+- 结构化日志库（**slog 首选** / zap / zerolog），作为单例通过 DI 传递。
+- 级别：DEBUG（诊断）→ INFO（关键节点）→ WARN（可恢复异常）→ ERROR（需人工介入）。
+- **敏感信息（密码/Token/AK/SK/手机号）禁止原样记录，必须脱敏**。
+- 请求级日志必须包含 `trace_id` / `request_id`，通过 context 传播。
 
 ```go
-// 必须将 context.Context 作为第一个参数
+func New(env string) (*zap.Logger, error) {
+    var config zap.Config
+    if env == "production" {
+        config = zap.NewProductionConfig()
+        config.EncoderConfig.TimeKey = "timestamp"
+        config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+    } else {
+        config = zap.NewDevelopmentConfig()
+        config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+    }
+    return config.Build(zap.AddCaller(), zap.AddCallerSkip(1))
+}
+
 func (s *UserService) GetUser(ctx context.Context, id string) (*User, error) {
-    // 传递 context
+    s.log.Info("getting user", zap.String("user_id", id), zap.String("request_id", GetRequestID(ctx)))
     user, err := s.repo.GetByID(ctx, id)
     if err != nil {
+        s.log.Error("failed to get user", zap.String("user_id", id), zap.Error(err))
         return nil, err
     }
     return user, nil
 }
+```
 
-// 设置超时
-func (h *UserHandler) GetUser(c *gin.Context) {
-    ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-    defer cancel()
-    
-    user, err := h.service.GetUser(ctx, c.Param("id"))
-    if err != nil {
-        handleError(c, err)
-        return
-    }
-    
-    c.JSON(http.StatusOK, user)
-}
+---
 
-// 传递请求元数据
+## 8. 并发编程
+
+- **Context 始终作为函数第一参数**，不在 struct 中存储。
+- 网络/DB 调用必须 `context.WithTimeout`，`defer cancel()` 不能遗漏。
+- 每个 goroutine 必须明确退出路径，后台任务用 `select <-ctx.Done()` 优雅关闭。
+
+| 场景 | 同步原语 |
+|------|---------|
+| 初始化一次 | `sync.Once` |
+| 读多写少 | `sync.RWMutex` |
+| 简单互斥 | `sync.Mutex` |
+| goroutine 通信 | channel |
+| 等待多 goroutine | `sync.WaitGroup` |
+
+**常见陷阱**：map 须加锁或 `sync.Map`；`defer cancel()` 必须存在。
+
+### Context 使用模式
+
+```go
 type contextKey string
 
 const (
@@ -238,143 +252,109 @@ func UserIDFromContext(ctx context.Context) (string, bool) {
 
 ---
 
-## 4. Web 框架规范
+## 9. 配置管理
 
-### 4.1 Gin 框架
+优先级：`命令行参数 > 环境变量 > 配置文件 > 默认值`
 
 ```go
-// cmd/api/main.go
-package main
+type Config struct {
+    Server ServerConfig `yaml:"server"`
+}
+type ServerConfig struct {
+    Port int `yaml:"port" default:"8080"`
+}
+func (c Config) Validate() error { /* fail-fast 校验 */ }
+```
 
-import (
-    "log"
-    
-    "github.com/gin-gonic/gin"
-    "go.uber.org/zap"
-    
-    "project/internal/config"
-    "project/internal/handler"
-    "project/internal/middleware"
-    "project/internal/repository"
-    "project/internal/service"
-)
+- main 中尽早 `Validate()`，失败立即退出。
+- 环境差异通过外部注入，禁止代码中 `if env == "production"`。
 
+---
+
+## 10. 接口设计
+
+- 接口在使用方定义（Go 隐式接口），不预定义大接口。
+- 小接口组合大接口，遵循接口隔离原则。
+- 用途分类：抽象多实现 / 依赖反转 / 测试替身 / 解耦边界。
+
+---
+
+## 11. 依赖注入
+
+```go
+// ✅ 构造函数注入
+type Service struct {
+    repo Repository // 接口类型
+}
+func NewService(repo Repository) *Service { return &Service{repo: repo} }
+
+// ❌ 全局变量 / 硬编码依赖
+```
+
+`cmd/main.go` 中一次性组装完整依赖树：
+
+```go
 func main() {
     cfg := config.Load()
-    
     logger, _ := zap.NewProduction()
     defer logger.Sync()
-    
-    // 数据库连接
+
     db, err := repository.NewDB(cfg.Database)
     if err != nil {
         log.Fatal(err)
     }
-    
-    // 依赖注入
+
     userRepo := repository.NewUserRepository(db)
     userService := service.NewUserService(userRepo, logger)
     userHandler := handler.NewUserHandler(userService)
-    
-    // 创建路由
-    r := gin.New()
-    
-    // 全局中间件
-    r.Use(middleware.Logger(logger))
-    r.Use(middleware.Recovery(logger))
-    r.Use(middleware.RequestID())
-    r.Use(middleware.CORS())
-    
-    // 健康检查
-    r.GET("/health", func(c *gin.Context) {
-        c.JSON(200, gin.H{"status": "ok"})
-    })
-    
-    // API v1
-    v1 := r.Group("/api/v1")
+    // ...
+}
+```
+
+---
+
+## 12. Web 框架规范（Gin）
+
+在 `cmd/main.go` 中完成 DI 组装后，配置路由与中间件：
+
+```go
+r := gin.New()
+r.Use(middleware.Logger(logger), middleware.Recovery(logger), middleware.RequestID(), middleware.CORS())
+
+r.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
+r.GET("/healthz", func(c *gin.Context) { /* 验证所有依赖可用 */ })
+
+v1 := r.Group("/api/v1")
+{
+    users := v1.Group("/users")
     {
-        users := v1.Group("/users")
-        {
-            users.GET("", userHandler.List)
-            users.GET("/:id", userHandler.Get)
-            users.POST("", userHandler.Create)
-            users.PUT("/:id", userHandler.Update)
-            users.DELETE("/:id", userHandler.Delete)
-        }
-    }
-    
-    if err := r.Run(":" + cfg.Server.Port); err != nil {
-        log.Fatal(err)
+        users.GET("", userHandler.List)
+        users.GET("/:id", userHandler.Get)
+        users.POST("", userHandler.Create)
+        users.PUT("/:id", userHandler.Update)
+        users.DELETE("/:id", userHandler.Delete)
     }
 }
 ```
 
-### 4.2 Handler 规范
+### Handler 规范
 
 ```go
-// internal/handler/user_handler.go
-package handler
-
-import (
-    "net/http"
-    
-    "github.com/gin-gonic/gin"
-    "github.com/go-playground/validator/v10"
-    
-    "project/internal/domain"
-    "project/internal/service"
-)
-
 type UserHandler struct {
-    service service.UserService
+    service  service.UserService
     validate *validator.Validate
 }
 
 func NewUserHandler(s service.UserService) *UserHandler {
-    return &UserHandler{
-        service: s,
-        validate: validator.New(),
-    }
-}
-
-// List godoc
-// @Summary      List users
-// @Description  get all users with pagination
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        page   query     int  false  "Page number"  default(1)
-// @Param        size   query     int  false  "Page size"    default(10)
-// @Success      200    {object}  PaginatedResponse{data=[]domain.User}
-// @Router       /users [get]
-func (h *UserHandler) List(c *gin.Context) {
-    var req ListUsersRequest
-    if err := c.ShouldBindQuery(&req); err != nil {
-        c.JSON(http.StatusBadRequest, ErrorResponse(err))
-        return
-    }
-    
-    users, total, err := h.service.List(c.Request.Context(), req.Page, req.Size)
-    if err != nil {
-        handleError(c, err)
-        return
-    }
-    
-    c.JSON(http.StatusOK, PaginatedResponse{
-        Data:  users,
-        Total: total,
-        Page:  req.Page,
-        Size:  req.Size,
-    })
+    return &UserHandler{service: s, validate: validator.New()}
 }
 
 // Create godoc
 // @Summary      Create user
-// @Description  create a new user
 // @Tags         users
 // @Accept       json
 // @Produce      json
-// @Param        user  body      CreateUserRequest  true  "User info"
+// @Param        user  body  CreateUserRequest  true  "User info"
 // @Success      201   {object}  domain.User
 // @Router       /users [post]
 func (h *UserHandler) Create(c *gin.Context) {
@@ -383,25 +363,16 @@ func (h *UserHandler) Create(c *gin.Context) {
         c.JSON(http.StatusBadRequest, ErrorResponse(err))
         return
     }
-    
     if err := h.validate.Struct(req); err != nil {
         c.JSON(http.StatusBadRequest, ValidationErrorResponse(err))
         return
     }
-    
     user, err := h.service.Create(c.Request.Context(), &req)
     if err != nil {
         handleError(c, err)
         return
     }
-    
     c.JSON(http.StatusCreated, user)
-}
-
-// 请求/响应结构
-type ListUsersRequest struct {
-    Page int `form:"page" binding:"min=1" default:"1"`
-    Size int `form:"size" binding:"min=1,max=100" default:"10"`
 }
 
 type CreateUserRequest struct {
@@ -422,18 +393,17 @@ func ErrorResponse(err error) gin.H {
 }
 
 func ValidationErrorResponse(err error) gin.H {
-    if validationErrors, ok := err.(validator.ValidationErrors); ok {
-        errors := make(map[string]string)
-        for _, e := range validationErrors {
-            errors[e.Field()] = e.Tag()
+    if ves, ok := err.(validator.ValidationErrors); ok {
+        errs := make(map[string]string)
+        for _, e := range ves {
+            errs[e.Field()] = e.Tag()
         }
-        return gin.H{"errors": errors}
+        return gin.H{"errors": errs}
     }
     return gin.H{"error": err.Error()}
 }
 
 func handleError(c *gin.Context, err error) {
-    // 根据错误类型返回不同状态码
     switch {
     case errors.Is(err, ErrNotFound):
         c.JSON(http.StatusNotFound, ErrorResponse(err))
@@ -449,79 +419,33 @@ func handleError(c *gin.Context, err error) {
 
 ---
 
-## 5. 数据库规范
-
-### 5.1 GORM 使用
+## 13. 数据库规范（GORM）
 
 ```go
-// internal/repository/db.go
-package repository
-
-import (
-    "fmt"
-    "time"
-    
-    "gorm.io/driver/postgres"
-    "gorm.io/gorm"
-    "gorm.io/gorm/logger"
-    
-    "project/internal/config"
-    "project/internal/domain"
-)
-
 func NewDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
     dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
         cfg.Host, cfg.User, cfg.Password, cfg.Name, cfg.Port, cfg.SSLMode)
-    
     db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-        Logger: logger.Default.LogMode(logger.Silent),
-        NowFunc: func() time.Time {
-            return time.Now().UTC()
-        },
+        Logger:  logger.Default.LogMode(logger.Silent),
+        NowFunc: func() time.Time { return time.Now().UTC() },
     })
     if err != nil {
         return nil, err
     }
-    
     sqlDB, err := db.DB()
     if err != nil {
         return nil, err
     }
-    
-    // 连接池配置
     sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
     sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
     sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
-    
-    // 自动迁移
-    if cfg.AutoMigrate {
-        if err := autoMigrate(db); err != nil {
-            return nil, err
-        }
-    }
-    
     return db, nil
 }
+```
 
-func autoMigrate(db *gorm.DB) error {
-    return db.AutoMigrate(
-        &domain.User{},
-        &domain.Order{},
-    )
-}
+### Repository 模式
 
-// internal/repository/user_repo.go
-package repository
-
-import (
-    "context"
-    
-    "gorm.io/gorm"
-    
-    "project/internal/domain"
-    "project/internal/pkg/errors"
-)
-
+```go
 type userRepository struct {
     db *gorm.DB
 }
@@ -544,56 +468,106 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*domain.User, 
 func (r *userRepository) List(ctx context.Context, page, size int) ([]*domain.User, int64, error) {
     var users []*domain.User
     var total int64
-    
     query := r.db.WithContext(ctx).Model(&domain.User{})
-    
     if err := query.Count(&total).Error; err != nil {
         return nil, 0, err
     }
-    
     if err := query.Offset((page - 1) * size).Limit(size).Find(&users).Error; err != nil {
         return nil, 0, err
     }
-    
     return users, total, nil
-}
-
-func (r *userRepository) Create(ctx context.Context, user *domain.User) error {
-    return r.db.WithContext(ctx).Create(user).Error
-}
-
-func (r *userRepository) Update(ctx context.Context, user *domain.User) error {
-    return r.db.WithContext(ctx).Save(user).Error
-}
-
-func (r *userRepository) Delete(ctx context.Context, id string) error {
-    return r.db.WithContext(ctx).Delete(&domain.User{}, "id = ?", id).Error
 }
 ```
 
 ---
 
-## 6. 测试规范
+## 14. API 设计
 
-### 6.1 单元测试
+- RESTful：`GET/POST/PUT/PATCH/DELETE /api/v1/{resources}/:id`，资源名复数。
+- 嵌套不超过两层；字段 snake_case；响应包在 `data` 中。
+- 版本化通过 URL 路径（`/api/v1/`），废弃版本保留至少一个发布周期。
+- 向后兼容：新增字段 ✅ / 修改/删除字段 ❌。
+
+---
+
+## 15. 测试规范
+
+### 框架与命名
+
+- `testing` + `testify/require`（遇错停止）/ `testify/assert`（遇错继续）。**禁止 ginkgo/gomega**。
+- testify 内部取舍：`assert`/`require` ✅ 使用 | `mock` ❌ 避免（手写更清晰） | `suite` ❌ 避免（不支持并行）
+- 命名：`func Test{Package}_{Method}_{Scenario}(t *testing.T)`
+
+### 并发测试利器：testing/synctest（Go 1.25+）
+
+`testing/synctest` 通过虚拟化时间，让并发/异步代码的测试从慢且 flaky 变为可靠且近乎瞬时：
 
 ```go
-// internal/service/user_service_test.go
-package service
+func TestWithTimeout(t *testing.T) {
+    synctest.Test(t, func(t *testing.T) {
+        ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+        defer cancel()
 
-import (
-    "context"
-    "errors"
-    "testing"
-    
-    "github.com/stretchr/testify/assert"
-    "github.com/stretchr/testify/mock"
-    "go.uber.org/zap"
-    
-    "project/internal/domain"
-)
+        // 在 synctest 中，5 秒超时会立即触发，无需真实等待
+        result, err := service.FetchWithTimeout(ctx)
+        require.ErrorIs(t, err, context.DeadlineExceeded)
+    })
+}
+```
 
-// Mock Repository
+适用场景：超时逻辑、重试机制、定时任务、goroutine 协调——传统上最难测试的并发代码。
+
+### 表驱动测试
+
+```go
+tests := []struct {
+    name  string
+    input string
+    want  int
+}{
+    {"valid", "abc", 200},
+    {"empty", "", 400},
+}
+for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+        require.Equal(t, tt.want, process(tt.input))
+    })
+}
+```
+
+### Mock 策略
+
+- HTTP API：`httptest.NewServer`；数据库：SQLite in-memory 或 testcontainers。
+- 接口 Mock：手写实现，不用代码生成工具。
+
+### 并发测试（强制要求）
+
+所有涉及共享状态的 Service 必须覆盖：
+
+| 场景 | goroutine 数 | 验证要点 |
+|------|:---:|------|
+| 并发读 | ≥ 50 | 无 panic、数据不窜 |
+| 并发写 | ≥ 50 | 修改安全、状态一致 |
+| 读写混合 | ≥ 50 | RWMutex 保护有效 |
+| 并发注册+取消 | ≥ 50 | map 安全 |
+| 压力测试 | ≥ 1000 次 | 无死锁、无 goroutine 泄漏 |
+
+所有并发测试必须包含超时检测（`select + time.After`），推荐 `-race` 标志运行。
+
+### 覆盖率与隔离
+
+| 指标 | 目标 |
+|------|:----:|
+| 整体行覆盖率 | ≥ 70% |
+| 核心业务逻辑 | ≥ 85% |
+| 错误分支 | 100% |
+
+- 测试间独立，不依赖执行顺序，使用 `t.Cleanup()` 清理资源。
+- 集成测试放入 `test/` 或标记 `//go:build integration`。
+
+### 单元测试示例
+
+```go
 type mockUserRepository struct {
     mock.Mock
 }
@@ -606,387 +580,218 @@ func (m *mockUserRepository) GetByID(ctx context.Context, id string) (*domain.Us
     return args.Get(0).(*domain.User), args.Error(1)
 }
 
-func (m *mockUserRepository) Create(ctx context.Context, user *domain.User) error {
-    args := m.Called(ctx, user)
-    return args.Error(0)
-}
-
-func TestUserService_GetUser(t *testing.T) {
-    logger := zap.NewNop()
-    
-    t.Run("success", func(t *testing.T) {
-        mockRepo := new(mockUserRepository)
-        service := NewUserService(mockRepo, logger)
-        
-        expectedUser := &domain.User{
-            ID:    "123",
-            Email: "test@example.com",
-            Name:  "Test User",
-        }
-        
-        mockRepo.On("GetByID", mock.Anything, "123").Return(expectedUser, nil)
-        
-        user, err := service.GetUser(context.Background(), "123")
-        
-        assert.NoError(t, err)
-        assert.Equal(t, expectedUser, user)
-        mockRepo.AssertExpectations(t)
-    })
-    
-    t.Run("not found", func(t *testing.T) {
-        mockRepo := new(mockUserRepository)
-        service := NewUserService(mockRepo, logger)
-        
-        mockRepo.On("GetByID", mock.Anything, "999").Return(nil, errors.New("not found"))
-        
-        user, err := service.GetUser(context.Background(), "999")
-        
-        assert.Error(t, err)
-        assert.Nil(t, user)
-        mockRepo.AssertExpectations(t)
-    })
-}
-```
-
-### 6.2 集成测试
-
-```go
-// tests/integration/user_test.go
-package integration
-
-import (
-    "bytes"
-    "encoding/json"
-    "net/http"
-    "net/http/httptest"
-    "testing"
-    
-    "github.com/gin-gonic/gin"
-    "github.com/stretchr/testify/assert"
-    "github.com/stretchr/testify/suite"
-    
-    "project/internal/handler"
-    "project/internal/repository"
-    "project/internal/service"
-)
-
-type UserIntegrationTestSuite struct {
-    suite.Suite
-    router *gin.Engine
-    db     *gorm.DB
-}
-
-func (s *UserIntegrationTestSuite) SetupSuite() {
-    gin.SetMode(gin.TestMode)
-    
-    // 使用测试数据库
-    db, err := repository.NewTestDB()
-    if err != nil {
-        s.T().Fatal(err)
-    }
-    s.db = db
-    
-    // 设置路由
-    userRepo := repository.NewUserRepository(db)
-    userService := service.NewUserService(userRepo, zap.NewNop())
-    userHandler := handler.NewUserHandler(userService)
-    
-    r := gin.New()
-    r.POST("/api/v1/users", userHandler.Create)
-    r.GET("/api/v1/users/:id", userHandler.Get)
-    
-    s.router = r
-}
-
-func (s *UserIntegrationTestSuite) TearDownSuite() {
-    // 清理测试数据
-    sqlDB, _ := s.db.DB()
-    sqlDB.Close()
-}
-
-func (s *UserIntegrationTestSuite) TestCreateUser() {
-    req := handler.CreateUserRequest{
-        Email:    "test@example.com",
-        Name:     "Test User",
-        Password: "password123",
-    }
-    
-    body, _ := json.Marshal(req)
-    w := httptest.NewRecorder()
-    request, _ := http.NewRequest("POST", "/api/v1/users", bytes.NewBuffer(body))
-    request.Header.Set("Content-Type", "application/json")
-    
-    s.router.ServeHTTP(w, request)
-    
-    assert.Equal(s.T(), http.StatusCreated, w.Code)
-    
-    var response domain.User
-    err := json.Unmarshal(w.Body.Bytes(), &response)
-    assert.NoError(s.T(), err)
-    assert.Equal(s.T(), req.Email, response.Email)
-    assert.Equal(s.T(), req.Name, response.Name)
-}
-
-func TestUserIntegration(t *testing.T) {
-    suite.Run(t, new(UserIntegrationTestSuite))
+func TestUserService_GetUser_Success(t *testing.T) {
+    mockRepo := new(mockUserRepository)
+    svc := NewUserService(mockRepo, zap.NewNop())
+    expected := &domain.User{ID: "123", Email: "test@example.com"}
+    mockRepo.On("GetByID", mock.Anything, "123").Return(expected, nil)
+    user, err := svc.GetUser(context.Background(), "123")
+    assert.NoError(t, err)
+    assert.Equal(t, expected, user)
 }
 ```
 
 ---
 
-## 7. 可观测性
+## 16. 性能优化
 
-### 7.1 日志 (Zap)
+- 先正确后性能，以 pprof 数据为依据，不凭直觉优化。
+- 预分配 slice 容量：`make([]Item, 0, size)`
+- 循环拼接字符串用 `strings.Builder`，不用 `+`
+- HTTP Client 复用，配置连接池与超时：
 
 ```go
-// internal/pkg/logger/logger.go
-package logger
-
-import (
-    "os"
-    
-    "go.uber.org/zap"
-    "go.uber.org/zap/zapcore"
-)
-
-func New(env string) (*zap.Logger, error) {
-    var config zap.Config
-    
-    if env == "production" {
-        config = zap.NewProductionConfig()
-        config.EncoderConfig.TimeKey = "timestamp"
-        config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-    } else {
-        config = zap.NewDevelopmentConfig()
-        config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-    }
-    
-    logger, err := config.Build(
-        zap.AddCaller(),
-        zap.AddCallerSkip(1),
-    )
-    if err != nil {
-        return nil, err
-    }
-    
-    return logger, nil
-}
-
-// 使用示例
-func (s *UserService) GetUser(ctx context.Context, id string) (*User, error) {
-    s.log.Info("getting user",
-        zap.String("user_id", id),
-        zap.String("request_id", GetRequestID(ctx)),
-    )
-    
-    user, err := s.repo.GetByID(ctx, id)
-    if err != nil {
-        s.log.Error("failed to get user",
-            zap.String("user_id", id),
-            zap.Error(err),
-        )
-        return nil, err
-    }
-    
-    s.log.Info("user found",
-        zap.String("user_id", user.ID),
-        zap.String("email", user.Email),
-    )
-    
-    return user, nil
+var client = &http.Client{
+    Timeout: 10 * time.Second,
+    Transport: &http.Transport{
+        MaxIdleConns: 100, MaxIdleConnsPerHost: 10, IdleConnTimeout: 90 * time.Second,
+    },
 }
 ```
 
-### 7.2 指标 (Prometheus)
+### 基准测试（Go 1.25+ B.Loop）
 
 ```go
-// internal/pkg/metrics/metrics.go
-package metrics
+func BenchmarkProcess(b *testing.B) {
+    for b.Loop() {
+        process(input)
+    }
+}
+```
 
-import (
-    "github.com/prometheus/client_golang/prometheus"
-    "github.com/prometheus/client_golang/prometheus/promauto"
-)
+`B.Loop` 替代传统 `for i := 0; i < b.N; i++`，自动处理编译器优化逃逸、定时器暂停等陷阱。
 
+### 容器感知调度（Go 1.25+）
+
+`GOMAXPROCS` 自动适配容器 CPU 限制，无需再引入 `go.uber.org/automaxprocs`。
+
+---
+
+## 17. 安全规范
+
+- **输入校验**：所有外部输入在 handler 层校验（长度/格式/业务规则/注入风险）。
+- **SQL 防护**：参数化查询 `db.Query("... WHERE id = ?", id)`，禁止字符串拼接。
+- **密钥管理**：不硬编码、不提交仓库，通过环境变量/KMS 注入，`.gitignore` 覆盖。
+- **依赖安全**：`go mod tidy` + CI 集成 `govulncheck`。
+
+---
+
+## 18. 可观测性
+
+### 指标（Prometheus）
+
+```go
 var (
-    // HTTP请求指标
     HTTPRequestsTotal = promauto.NewCounterVec(
-        prometheus.CounterOpts{
-            Name: "http_requests_total",
-            Help: "Total number of HTTP requests",
-        },
+        prometheus.CounterOpts{Name: "http_requests_total", Help: "Total number of HTTP requests"},
         []string{"method", "endpoint", "status"},
     )
-    
     HTTPRequestDuration = promauto.NewHistogramVec(
-        prometheus.HistogramOpts{
-            Name:    "http_request_duration_seconds",
-            Help:    "HTTP request duration in seconds",
-            Buckets: prometheus.DefBuckets,
-        },
+        prometheus.HistogramOpts{Name: "http_request_duration_seconds", Help: "HTTP request duration", Buckets: prometheus.DefBuckets},
         []string{"method", "endpoint"},
     )
-    
-    // 业务指标
-    UsersCreatedTotal = promauto.NewCounter(
-        prometheus.CounterOpts{
-            Name: "users_created_total",
-            Help: "Total number of users created",
-        },
-    )
 )
+```
 
-// Gin中间件
+覆盖 RED 指标（Rate / Error / Duration）。
+
+Gin 中间件集成：
+
+```go
 func PrometheusMiddleware() gin.HandlerFunc {
     return func(c *gin.Context) {
         start := time.Now()
-        
         c.Next()
-        
         duration := time.Since(start).Seconds()
         status := strconv.Itoa(c.Writer.Status())
-        
-        HTTPRequestsTotal.WithLabelValues(
-            c.Request.Method,
-            c.FullPath(),
-            status,
-        ).Inc()
-        
-        HTTPRequestDuration.WithLabelValues(
-            c.Request.Method,
-            c.FullPath(),
-        ).Observe(duration)
+        HTTPRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), status).Inc()
+        HTTPRequestDuration.WithLabelValues(c.Request.Method, c.FullPath()).Observe(duration)
     }
 }
 ```
 
-### 7.3 追踪 (OpenTelemetry)
+### 健康检查
+
+- `/health` — 存活探针
+- `/healthz` — 就绪探针（验证所有依赖可用）
+
+### 执行追踪 Flight Recorder（Go 1.25+）
+
+生产环境"黑匣子"，出事后回溯，无需持续全量采集：
 
 ```go
-// internal/pkg/tracer/tracer.go
-package tracer
+import "runtime/trace"
 
-import (
-    "context"
-    
-    "go.opentelemetry.io/otel"
-    "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-    "go.opentelemetry.io/otel/sdk/resource"
-    sdktrace "go.opentelemetry.io/otel/sdk/trace"
-    semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
-    "go.opentelemetry.io/otel/trace"
-)
+func init() {
+    fr := trace.NewFlightRecorder()
+    fr.Start()
+    defer fr.Stop()
 
+    // 出现异常时手动触发快照
+    // snapshot, _ := fr.TakeSnapshot()
+}
+```
+
+### 分布式追踪
+
+OpenTelemetry，trace_id 通过 context + HTTP Header 跨服务传播。
+
+```go
 func InitTracer(serviceName, endpoint string) (*sdktrace.TracerProvider, error) {
-    ctx := context.Background()
-    
-    exporter, err := otlptracegrpc.New(ctx,
-        otlptracegrpc.WithEndpoint(endpoint),
-        otlptracegrpc.WithInsecure(),
-    )
+    exporter, err := otlptracegrpc.New(context.Background(),
+        otlptracegrpc.WithEndpoint(endpoint), otlptracegrpc.WithInsecure())
     if err != nil {
         return nil, err
     }
-    
     tp := sdktrace.NewTracerProvider(
         sdktrace.WithBatcher(exporter),
-        sdktrace.WithResource(resource.NewWithAttributes(
-            semconv.SchemaURL,
-            semconv.ServiceName(serviceName),
-        )),
+        sdktrace.WithResource(resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceName(serviceName))),
     )
-    
     otel.SetTracerProvider(tp)
     return tp, nil
 }
 
-// 使用示例
 func (s *UserService) GetUser(ctx context.Context, id string) (*User, error) {
-    tracer := otel.Tracer("user-service")
-    ctx, span := tracer.Start(ctx, "GetUser")
+    ctx, span := otel.Tracer("user-service").Start(ctx, "GetUser")
     defer span.End()
-    
-    span.SetAttributes(
-        attribute.String("user.id", id),
-    )
-    
+    span.SetAttributes(attribute.String("user.id", id))
     user, err := s.repo.GetByID(ctx, id)
     if err != nil {
         span.RecordError(err)
         return nil, err
     }
-    
     return user, nil
 }
 ```
 
 ---
 
-## 8. AI Agent 集成
+## 19. 版本控制
 
-```go
-// internal/agents/code_reviewer.go
-package agents
-
-import (
-    "context"
-    "encoding/json"
-    "fmt"
-    
-    "github.com/your-org/ai-sdk-go"
-)
-
-type CodeReviewer struct {
-    client *ai.Client
-}
-
-func NewCodeReviewer(apiKey string) *CodeReviewer {
-    return &CodeReviewer{
-        client: ai.NewClient(apiKey),
-    }
-}
-
-type ReviewResult struct {
-    Issues []Issue `json:"issues"`
-    Score  int     `json:"score"`
-}
-
-type Issue struct {
-    Line     int    `json:"line"`
-    Severity string `json:"severity"`
-    Message  string `json:"message"`
-    Suggestion string `json:"suggestion"`
-}
-
-func (r *CodeReviewer) Review(ctx context.Context, filename, content string) (*ReviewResult, error) {
-    prompt := fmt.Sprintf(`请审查以下Go代码，找出潜在问题:
-
-文件名: %s
-
-代码:
-%s
-
-请以JSON格式输出审查结果，包含issues数组和score分数。`, filename, content)
-    
-    response, err := r.client.Complete(ctx, prompt)
-    if err != nil {
-        return nil, err
-    }
-    
-    var result ReviewResult
-    if err := json.Unmarshal([]byte(response), &result); err != nil {
-        return nil, err
-    }
-    
-    return &result, nil
-}
-```
+- 分支：中小型服务推荐 GitHub Flow（feature → PR → main）。
+- Commit：`[type](scope): description`（type = feat/fix/refactor/perf/test/docs/chore/ci）。
+- PR：小而专注，标题含变更摘要，描述含影响范围，链接 Issue，至少一人 Approve。
 
 ---
 
-**参考**:
-- [Effective Go](https://golang.org/doc/effective_go)
-- [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
-- [Standard Go Project Layout](https://github.com/golang-standards/project-layout)
-- [Gin Documentation](https://gin-gonic.com/docs/)
-- [GORM Documentation](https://gorm.io/docs/)
+## 20. 常见陷阱
+
+1. **只有一个实现就定义接口** — 等真正需要多态时再抽象。
+2. **循环中 `+=` 拼接字符串** — 改用 `strings.Builder`。
+3. **`==` 比较时间** — 用 `t1.Equal(t2)`。
+4. **大切片的小切片仍引用整个底层数组** — 用 `copy` 复制。
+5. **nil slice 序列化为 `null`** — 用 `make([]string, 0)` 得到 `[]`。
+6. **goroutine 无退出路径** — 用 `select <-ctx.Done()` 控制。
+7. **循环中 `defer fd.Close()`** — 封装到闭包或等值函数中。
+8. **`if user, err := ...` 变量遮蔽** — 先声明 error，再赋值。
+
+---
+
+## 21. 代码评审检查清单
+
+### 功能性
+- [ ] 逻辑正确，覆盖边界情况
+- [ ] 错误处理完善
+- [ ] 并发安全：无竞态条件，无 goroutine 泄漏
+
+### 可读性
+- [ ] 命名清晰，注释完整
+- [ ] 无重复代码（DRY）
+- [ ] 函数 ≤ 50 行，文件 ≤ 300 行
+- [ ] 不使用 panic 做业务逻辑控制
+
+### 可测试性
+- [ ] 核心逻辑有单元测试，错误分支有覆盖
+- [ ] 涉及共享状态的 Service 有并发测试（≥ 50 goroutine + 超时检测）
+- [ ] 并发测试覆盖读/写/混合三种场景
+- [ ] 接口依赖可 mock
+
+### 代码质量
+- [ ] `go vet ./...` / `golangci-lint run`（含 testifylint）无告警
+- [ ] `go test ./...` 全部通过
+- [ ] 无硬编码配置、无未使用 import
+
+### 安全
+- [ ] 无密钥泄露（硬编码/日志）
+- [ ] 输入校验完整
+- [ ] `go mod tidy` 已执行
+- [ ] `govulncheck ./...` 无已知漏洞
+
+### 性能
+- [ ] 无性能反模式
+- [ ] 网络/DB 操作有超时
+- [ ] HTTP Client 复用
+- [ ] 基准测试使用 `B.Loop`（Go 1.25+）
+
+### Go 1.25+ 特性利用
+- [ ] 并发测试优先使用 `testing/synctest`
+- [ ] 容器部署无需 `automaxprocs`（Go 1.25 自动适配）
+- [ ] 结构化日志使用 `slog`（stdlib）
+- [ ] 生产环境启用 Flight Recorder
+
+### 向后兼容
+- [ ] 无破坏性 API 变更
+
+---
+
+**参考**: [Effective Go](https://golang.org/doc/effective_go) | [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments) | [Standard Go Project Layout](https://github.com/golang-standards/project-layout) | [Gin](https://gin-gonic.com/docs/) | [GORM](https://gorm.io/docs/)
