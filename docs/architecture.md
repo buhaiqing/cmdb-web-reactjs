@@ -428,5 +428,5 @@ Go 标准 `log` 包，启动时打印路由表（`gin.DebugMode` 硬编码）。
 | D7 | token 落 localStorage | XSS 可窃 token |
 | D7b | 前端登录 mock 回退 | 后端宕机仍可「登录」 |
 | D10 | AGENTS.md 事实性失实（已修正） | AI 会照着写出错误代码 |
-| D11 | docs/architecture.md Vue+FastAPI（已修正） | 同上 |
-| D12 | Python/FastAPI 残留 33 个 .py | 双后端并存；Go 缺 `GET /api/audit/export` |
+| D11 | docs/architecture.md Vue 3 + FastAPI（**已修正 2026-11-14**） | 重写为 React 19 + Next.js 15 + Go + Gin + GORM；详见 §1–§9 |
+| D12 | Python/FastAPI 残留 33 个 .py（`cmdb-web/backend/`） | 双后端并存；Go 侧唯一缺失端点 `GET /api/audit/export`（`backend/app/api/routes/audit.py:98`） |
