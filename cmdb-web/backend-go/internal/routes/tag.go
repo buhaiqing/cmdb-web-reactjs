@@ -25,8 +25,9 @@ func ListTags(c *gin.Context) {
 			"name":        t.Name,
 			"color":       t.Color,
 			"description": t.Description,
-			"created_by":  t.CreatedBy,
-			"created_at":  t.CreatedAt.Format("2006-01-02 15:04:05"),
+			"createdBy":  t.CreatedBy,
+			"createdAt":  t.CreatedAt.Format("2006-01-02 15:04:05"),
+			"updatedAt":  t.UpdatedAt.Format("2006-01-02 15:04:05"),
 		}
 	}
 
@@ -129,7 +130,7 @@ func GetTag(c *gin.Context) {
 			"name":        tag.Name,
 			"color":       tag.Color,
 			"description": tag.Description,
-			"created_by":  tag.CreatedBy,
+			"createdBy":  tag.CreatedBy,
 		},
 	})
 }

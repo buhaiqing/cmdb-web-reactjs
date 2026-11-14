@@ -1,15 +1,6 @@
 import { create } from 'zustand'
 import { api } from './user'
-
-export interface Tag {
-  id: string
-  name: string
-  color: string
-  description?: string
-  createdBy?: string
-  createdAt: string
-  updatedAt: string
-}
+import type { Tag } from '../types/tag'
 
 interface TagState {
   tagList: Tag[]

@@ -70,13 +70,33 @@ func ListAuditLogs(c *gin.Context) {
 	var logs []models.AuditLog
 	query.Offset((page-1)*pageSize).Limit(pageSize).Order("created_at DESC").Find(&logs)
 
+	auditList := make([]gin.H, len(logs))
+	for i, l := range logs {
+		auditList[i] = gin.H{
+			"id":            l.ID,
+			"user_id":       l.UserID,
+			"username":      l.Username,
+			"action":        l.Action,
+			"resource_type": l.ResourceType,
+			"resource_id":   l.ResourceID,
+			"resource_name": l.ResourceName,
+			"old_value":     l.OldValue,
+			"new_value":     l.NewValue,
+			"ip":            nil,
+			"user_agent":    nil,
+			"status":        "success",
+			"details":       nil,
+			"created_at":    l.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+
 	c.JSON(http.StatusOK, schemas.BaseResponse{
 		Success: true,
 		Message: "ok",
 		Data: gin.H{
-			"items": logs,
-			"total": total,
-			"page": page,
+			"items":     auditList,
+			"total":     total,
+			"page":      page,
 			"page_size": pageSize,
 		},
 	})

@@ -35,15 +35,18 @@ import {
 } from '@ant-design/icons'
 import Link from 'next/link'
 import type { ColumnsType } from 'antd/es/table'
-import { useCIStore, CI } from '@/stores/ci'
+import { useCIStore } from '@/stores/ci'
+import type { CI } from '@/types/ci'
 import {
+  CITypeLabels,
+  CINodeColors,
+} from '@/stores/relation'
+import type {
   RelationNode,
   RelationEdge,
   RelationGraphData,
-  CITypeLabels,
-  CINodeColors,
   CIType,
-} from '@/stores/relation'
+} from '@/types/relation'
 
 const { Option } = Select
 const { TextArea } = Input

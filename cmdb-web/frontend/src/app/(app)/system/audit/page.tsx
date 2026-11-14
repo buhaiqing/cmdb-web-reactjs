@@ -6,26 +6,9 @@ import { SearchOutlined, ReloadOutlined, EyeOutlined, DownloadOutlined } from '@
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import { api } from '@/stores/user'
+import type { AuditLog } from '@/types/auditLog'
 
 const { RangePicker } = DatePicker
-
-interface AuditLog {
-  id: string
-  user: string
-  userId: string
-  action: string
-  actionName: string
-  resource: string
-  resourceType: string
-  resourceId: string
-  ip: string
-  userAgent: string
-  createdAt: string
-  status: 'success' | 'failed'
-  details?: string
-  oldValue?: string
-  newValue?: string
-}
 
 const actionMap: Record<string, { color: string; label: string; icon: string }> = {
   create: { color: 'green', label: '创建', icon: '➕' },

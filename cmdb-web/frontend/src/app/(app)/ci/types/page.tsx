@@ -5,19 +5,7 @@ import { Table, Button, Input, Space, Tag, Card, Row, Col, Modal, Form, message,
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, DesktopOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { api } from '@/stores/user'
-
-interface CIType {
-  id: string
-  name: string
-  code: string
-  icon?: string
-  description?: string
-  attributes?: string
-  isActive: boolean
-  sortOrder: number
-  createdAt: string
-  updatedAt: string
-}
+import type { CIType } from '@/types/ciType'
 
 export default function CITypeManagementPage() {
   const [ciTypeList, setCiTypeList] = useState<CIType[]>([])

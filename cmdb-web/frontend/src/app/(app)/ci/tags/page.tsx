@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react'
 import { Table, Button, Input, Space, Tag, Card, Row, Col, Modal, Form, message, Popconfirm } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import { useTagStore, Tag as TagType } from '@/stores'
+import { useTagStore } from '@/stores'
+import type { Tag as TagType } from '@/types/tag'
 
 const colorOptions = [
   { value: 'red', label: '红色' },

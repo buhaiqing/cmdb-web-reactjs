@@ -2,14 +2,16 @@
 
 import React, { useEffect, useRef, useCallback, useState } from 'react'
 import {
-  RelationNode,
-  RelationEdge,
-  CIType,
   CINodeColors,
   CINodeSizes,
   CITypeLabels,
   relationTypeMap,
 } from '@/stores/relation'
+import type {
+  RelationNode,
+  RelationEdge,
+  CIType,
+} from '@/types/relation'
 
 /**
  * 关系图组件 Props 接口

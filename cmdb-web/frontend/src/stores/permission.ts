@@ -1,19 +1,6 @@
 import { create } from 'zustand'
 import { api, useUserStore } from './user'
-
-interface Permission {
-  id: string
-  name: string
-  code: string
-  description: string
-}
-
-interface Role {
-  id: string
-  name: string
-  code: string
-  permissions: Permission[]
-}
+import type { Permission, Role } from '../types/permission'
 
 interface PermissionState {
   permissions: Permission[]

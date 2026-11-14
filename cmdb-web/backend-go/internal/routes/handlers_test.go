@@ -34,13 +34,13 @@ func setupTestDB() *gorm.DB {
 	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
 	os.Setenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
 	os.Setenv("DATABASE_TYPE", "sqlite")
-	os.Setenv("DATABASE_URL", ":memory:")
+	os.Setenv("DATABASE_URL", "file::memory:?cache=shared")
 
 	// 初始化配置
 	config.Init()
 
 	// 创建新的数据库连接
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {

@@ -1,20 +1,6 @@
 import { create } from 'zustand'
 import { api } from './user'
-
-export interface Change {
-  id: string
-  title: string
-  ciId: string
-  ciName?: string
-  changeType: string
-  description: string
-  status: 'pending' | 'approved' | 'rejected' | 'completed'
-  createdBy?: string
-  approvedBy?: string
-  approvedAt?: string
-  createdAt: string
-  updatedAt?: string
-}
+import type { Change } from '../types/change'
 
 interface ChangeState {
   changeList: Change[]

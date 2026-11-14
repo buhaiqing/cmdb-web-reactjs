@@ -6,7 +6,8 @@ import { Card, Descriptions, Tag, Button, Space, Spin, Row, Col, Table, Modal } 
 import { EditOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import type { ColumnsType } from 'antd/es/table'
-import { useCIStore, CI } from '@/stores/ci'
+import { useCIStore } from '@/stores/ci'
+import type { CI } from '@/types/ci'
 
 interface Relation {
   id: string

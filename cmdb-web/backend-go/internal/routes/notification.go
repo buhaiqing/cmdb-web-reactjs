@@ -57,7 +57,7 @@ func ListNotifications(c *gin.Context) {
 			"content":      n.Content,
 			"related_id":   n.RelatedID,
 			"related_type": n.RelatedType,
-			"is_read":      n.IsRead,
+			"isRead":      n.IsRead,
 			"read_at":      n.ReadAt,
 			"created_at":   n.CreatedAt.Format("2006-01-02 15:04:05"),
 		}

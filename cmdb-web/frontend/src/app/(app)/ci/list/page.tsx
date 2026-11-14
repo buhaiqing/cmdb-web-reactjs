@@ -5,7 +5,8 @@ import { Table, Button, Input, Space, Tag, Card, Row, Col, Select } from 'antd'
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import Link from 'next/link'
-import { useCIStore, CI } from '@/stores/ci'
+import { useCIStore } from '@/stores/ci'
+import type { CI } from '@/types/ci'
 
 export default function CIListPage() {
   const { ciList, pagination, isLoading, fetchCIList } = useCIStore()

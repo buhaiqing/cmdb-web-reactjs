@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 
@@ -33,6 +34,10 @@ func main() {
 		&models.Relation{},
 		&models.AuditLog{},
 		&models.ChangeRequest{},
+		&models.Tag{},
+		&models.Notification{},
+		&models.CIType{},
+		&models.CIVersion{},
 	); err != nil {
 		log.Fatalf("Failed to auto migrate: %v", err)
 	}
@@ -43,7 +48,11 @@ func main() {
 	seed.InitDefaultData()
 
 	// 设置 Gin 模式
-	gin.SetMode(gin.DebugMode)
+	mode := gin.DebugMode
+	if os.Getenv("GIN_MODE") == "release" {
+		mode = gin.ReleaseMode
+	}
+	gin.SetMode(mode)
 
 	// 创建 Gin 引擎
 	r := gin.Default()

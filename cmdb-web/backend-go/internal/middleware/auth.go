@@ -23,7 +23,7 @@ func getAllowedOrigins() map[string]bool {
 	}
 
 	// 从环境变量读取额外的允许 Origins
-	if extraOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); extraOrigins != "" {
+	if extraOrigins := os.Getenv("ALLOWED_ORIGINS"); extraOrigins != "" {
 		for _, origin := range strings.Split(extraOrigins, ",") {
 			origin = strings.TrimSpace(origin)
 			if origin != "" {

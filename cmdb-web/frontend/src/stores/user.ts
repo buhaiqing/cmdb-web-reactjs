@@ -1,14 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import axios from 'axios'
-
-interface User {
-  id: string
-  username: string
-  email: string
-  role: string
-  permissions: string[]
-}
+import type { User } from '../types/user'
 
 interface UserState {
   user: User | null

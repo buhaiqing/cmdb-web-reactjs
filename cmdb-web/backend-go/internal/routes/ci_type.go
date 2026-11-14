@@ -26,9 +26,10 @@ func ListCITypes(c *gin.Context) {
 			"icon":        t.Icon,
 			"description": t.Description,
 			"attributes":  t.Attributes,
-			"is_active":   t.IsActive,
-			"sort_order":  t.SortOrder,
-			"created_at":   t.CreatedAt.Format("2006-01-02 15:04:05"),
+			"isActive":    t.IsActive,
+			"sortOrder":   t.SortOrder,
+			"createdAt":   t.CreatedAt.Format("2006-01-02 15:04:05"),
+			"updatedAt":   t.UpdatedAt.Format("2006-01-02 15:04:05"),
 		}
 	}
 
@@ -135,8 +136,10 @@ func GetCIType(c *gin.Context) {
 			"icon":        ciType.Icon,
 			"description": ciType.Description,
 			"attributes":  ciType.Attributes,
-			"is_active":   ciType.IsActive,
-			"sort_order":  ciType.SortOrder,
+			"isActive":   ciType.IsActive,
+			"sortOrder":  ciType.SortOrder,
+			"createdAt":  ciType.CreatedAt.Format("2006-01-02 15:04:05"),
+			"updatedAt":  ciType.UpdatedAt.Format("2006-01-02 15:04:05"),
 		},
 	})
 }

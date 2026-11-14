@@ -82,25 +82,6 @@ type CIUpdate struct {
 	Description *string  `json:"description"`
 }
 
-// CIResponse 配置项响应
-type CIResponse struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Type        string   `json:"type"`
-	Status      string   `json:"status"`
-	IP          *string  `json:"ip"`
-	CPU         *string  `json:"cpu"`
-	Memory      *string  `json:"memory"`
-	Disk        *string  `json:"disk"`
-	OS          *string  `json:"os"`
-	Project     *string  `json:"project"`
-	Environment *string  `json:"environment"`
-	Tags        []string `json:"tags"`
-	Description *string  `json:"description"`
-	CreatedAt   string   `json:"created_at"`
-	UpdatedAt   string   `json:"updated_at"`
-}
-
 // RelationCreate 创建关系请求
 type RelationCreate struct {
 	SourceCIID   string  `json:"source_ci_id" binding:"required"`
@@ -113,17 +94,6 @@ type RelationCreate struct {
 type RelationUpdate struct {
 	RelationType *string `json:"relation_type"`
 	Description  *string `json:"description"`
-}
-
-// RelationResponse 关系响应
-type RelationResponse struct {
-	ID           string  `json:"id"`
-	SourceCIID   string  `json:"source_ci_id"`
-	TargetCIID   string  `json:"target_ci_id"`
-	RelationType string  `json:"relation_type"`
-	Description  *string `json:"description"`
-	CreatedAt    string  `json:"created_at"`
-	UpdatedAt    string  `json:"updated_at"`
 }
 
 // ChangeCreate 创建变更请求
@@ -146,20 +116,6 @@ type ChangeUpdate struct {
 	Priority    *string `json:"priority"`
 }
 
-// ChangeResponse 变更响应
-type ChangeResponse struct {
-	ID            string  `json:"id"`
-	Title         string  `json:"title"`
-	Description   string  `json:"description"`
-	CIID          string  `json:"ci_id"`
-	Reason        string  `json:"reason"`
-	Plan          string  `json:"plan"`
-	Status        string  `json:"status"`
-	Priority      string  `json:"priority"`
-	RequesterID   string  `json:"requester_id"`
-	ApproverID    *string `json:"approver_id"`
-	ApprovedAt    *string `json:"approved_at"`
-	ImplementedAt *string `json:"implemented_at"`
-	CreatedAt     string  `json:"created_at"`
-	UpdatedAt     string  `json:"updated_at"`
-}
+// NOTE: CIResponse, RelationResponse, ChangeResponse were removed (dead contract —
+// zero handlers used them; all output is hand-built gin.H). If a shared response
+// struct is needed, define it here and wire it into the handler in the same commit.

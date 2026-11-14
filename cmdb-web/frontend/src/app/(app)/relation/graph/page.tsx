@@ -31,7 +31,8 @@ import {
   InfoCircleOutlined,
 } from '@ant-design/icons'
 import Link from 'next/link'
-import { useRelationStore, RelationNode } from '@/stores/relation'
+import { useRelationStore } from '@/stores/relation'
+import type { RelationNode } from '@/types/relation'
 import RelationGraph from '@/components/relation/RelationGraph'
 
 const { Option } = Select

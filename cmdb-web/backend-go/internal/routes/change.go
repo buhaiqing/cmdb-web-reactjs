@@ -63,7 +63,7 @@ func ListChanges(c *gin.Context) {
 			"id":           ch.ID,
 			"ciName":       ciName,
 			"title":        ch.Title,
-			"changeType":   ch.Reason,
+			"createdBy":    ch.RequesterID,
 			"description":  ch.Description,
 			"ci_id":        ch.CIID,
 			"reason":       ch.Reason,
@@ -353,7 +353,7 @@ func GetRecentChanges(c *gin.Context) {
 		changeList[i] = gin.H{
 			"id":         ch.ID,
 			"ciName":     ciName,
-			"changeType": ch.Reason,
+			"createdBy": ch.RequesterID,
 			"operator":   ch.RequesterID,
 			"createdAt":  ch.CreatedAt.Format("2006-01-02 15:04:05"),
 			"status":     ch.Status,

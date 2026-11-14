@@ -11,6 +11,7 @@ import (
 	"cmdb-go/internal/models"
 	"cmdb-go/internal/schemas"
 	"cmdb-go/internal/security"
+	"cmdb-go/internal/utils"
 )
 
 // Login 用户登录
@@ -61,7 +62,10 @@ func Login(c *gin.Context) {
 	if user.Role != nil {
 		roleName = user.Role.Name
 		if user.Role.Permissions != nil {
-			permissions = []string{*user.Role.Permissions}
+			parsed, _ := utils.StringToJSON(*user.Role.Permissions)
+			if parsed != nil {
+				permissions = parsed
+			}
 		}
 	}
 
@@ -115,7 +119,10 @@ func GetMe(c *gin.Context) {
 	if user.Role != nil {
 		roleName = user.Role.Name
 		if user.Role.Permissions != nil {
-			permissions = []string{*user.Role.Permissions}
+			parsed, _ := utils.StringToJSON(*user.Role.Permissions)
+			if parsed != nil {
+				permissions = parsed
+			}
 		}
 	}
 

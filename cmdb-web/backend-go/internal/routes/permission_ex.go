@@ -9,6 +9,8 @@ import (
 	"cmdb-go/internal/database"
 	"cmdb-go/internal/models"
 	"cmdb-go/internal/schemas"
+	"cmdb-go/internal/utils"
+
 )
 
 func GetRolePermissions(c *gin.Context) {
@@ -26,7 +28,10 @@ func GetRolePermissions(c *gin.Context) {
 
 	var permissions []string
 	if role.Permissions != nil {
-		permissions = []string{*role.Permissions}
+		parsed, _ := utils.StringToJSON(*role.Permissions)
+		if parsed != nil {
+			permissions = parsed
+		}
 	}
 
 	c.JSON(http.StatusOK, schemas.BaseResponse{
