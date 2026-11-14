@@ -8,29 +8,20 @@
 graph TB
     subgraph "客户端层"
         Browser[浏览器]
-        Mobile[移动端]
     end
 
     subgraph "接入层"
         Nginx[Nginx 负载均衡器]
-        SLB[SLB 负载均衡]
     end
 
     subgraph "应用层"
-        Frontend[Vue 3 前端应用]
-        Backend[FastAPI 后端服务]
-        Auth[认证授权服务]
-    end
-
-    subgraph "集成层"
-        K8sIntegration[K8s 集成服务]
-        CloudIntegration[云平台集成服务]
-        MonitorIntegration[监控集成服务]
+        Frontend[Next.js 15 前端 (React 19)]
+        Backend[Go + Gin 后端 API]
+        Auth[JWT 认证中间件]
     end
 
     subgraph "数据层"
-        PostgreSQL[(PostgreSQL 主库)]
-        Redis[(Redis 缓存)]
+        DB[(SQLite / PostgreSQL / MySQL)]
     end
 
     subgraph "外部系统"
@@ -39,32 +30,23 @@ graph TB
         Prometheus[Prometheus]
     end
 
-    Browser --> SLB
-    Mobile --> SLB
-    SLB --> Nginx
+    Browser --> Nginx
     Nginx --> Frontend
     Nginx --> Backend
     Frontend --> Backend
     Backend --> Auth
-    Backend --> K8sIntegration
-    Backend --> CloudIntegration
-    Backend --> MonitorIntegration
-    Backend --> PostgreSQL
-    Backend --> Redis
-    K8sIntegration --> K8s
-    CloudIntegration --> Aliyun
-    MonitorIntegration --> Prometheus
+    Backend --> DB
 ```
 
 ### 1.2 架构分层说明
 
 | 层级 | 组件 | 技术选型 | 职责 |
 |------|------|----------|------|
-| 客户端层 | 浏览器、移动端 | Chrome、Safari、Edge | 用户交互界面 |
-| 接入层 | Nginx、SLB | Nginx、阿里云 SLB | 负载均衡、SSL 终止、静态资源 |
-| 应用层 | 前端、后端 | Vue 3、FastAPI | 业务逻辑处理、API 服务 |
-| 集成层 | 集成服务 | Python 服务 | 外部系统对接、数据同步 |
-| 数据层 | PostgreSQL、Redis | PostgreSQL 15、Redis 7 | 数据存储、缓存 |
+| 客户端层 | 浏览器 | Chrome、Safari、Edge | 用户交互界面 |
+| 接入层 | Nginx | Nginx | 负载均衡、SSL 终止、静态资源 |
+| 应用层 | 前端、后端 | Next.js 15 (React 19)、Go + Gin | 业务逻辑处理、API 服务、JWT 认证 |
+| 数据层 | 数据库 | SQLite / PostgreSQL / MySQL | 数据存储（可切换） |
+| 外部系统 | K8s、阿里云、Prometheus | — | 集成对接（预留） |
 
 ## 2. 技术栈说明
 
@@ -72,160 +54,92 @@ graph TB
 
 | 技术 | 版本 | 用途 | 选型理由 |
 |------|------|------|----------|
-| Vue | 3.x | 前端框架 | 组件化开发、响应式数据绑定、生态丰富 |
+| React | 19.x | 前端框架 | Server Components、并发渲染、生态丰富 |
+| Next.js | 15.x | 全栈框架 (App Router) | 文件路由、SSR/SSG、Turbopack |
 | TypeScript | 5.x | 类型系统 | 类型安全、代码提示、减少运行时错误 |
-| Vite | 5.x | 构建工具 | 快速启动、热更新、按需编译 |
-| Pinia | 2.x | 状态管理 | Vue 3 官方推荐、TypeScript 友好、轻量 |
-| Element Plus | 2.x | UI 组件库 | 企业级组件、主题定制、文档完善 |
-| Vue Router | 4.x | 路由管理 | 官方路由、支持懒加载、路由守卫 |
-| Axios | 1.x | HTTP 客户端 | 拦截器、请求取消、类型安全 |
-| Playwright | 1.x | E2E 测试 | 跨浏览器、自动化、报告生成 |
+| Zustand | 5.x | 状态管理 | 轻量、persist 中间件、TypeScript 友好 |
+| Ant Design | 6.x | UI 组件库 | 企业级组件、主题定制、Design Tokens |
+| @antv/g6 | 5.x | 关系图谱 | 图可视化、拓扑布局 |
+| Axios | 1.x | HTTP 客户端 | 拦截器、Bearer token 注入 |
+| Playwright | 1.x | E2E 测试 | 跨浏览器、Page Object Model |
+| dayjs | 1.x | 日期处理 | 轻量、moment 替代 |
 
 ### 2.2 后端技术栈
 
 | 技术 | 版本 | 用途 | 选型理由 |
 |------|------|------|----------|
-| Python | 3.11+ | 编程语言 | 开发效率高、生态丰富、AI/运维友好 |
-| FastAPI | 0.100+ | Web 框架 | 高性能、异步支持、自动生成文档 |
-| SQLAlchemy | 2.0+ | ORM 框架 | 功能强大、异步支持、类型安全 |
-| Pydantic | 2.x | 数据验证 | 数据校验、序列化、类型安全 |
-| Alembic | 1.x | 数据库迁移 | SQLAlchemy 官方迁移工具 |
-| Pytest | 7.x | 测试框架 | 插件丰富、断言简洁、并发测试 |
-| JWT | - | Token 认证 | 无状态、跨域、成熟稳定 |
+| Go | 1.27+ | 编程语言 | 高性能、静态编译、并发友好 |
+| Gin | 1.12 | Web 框架 | 高性能、中间件链、路由分组 |
+| GORM | 1.25 | ORM 框架 | AutoMigrate、多数据库支持、链式查询 |
+| jwt-go | v5 | Token 认证 | JWT 签发与验证 |
+| SQLite/Postgres/MySQL | — | 数据库 | 可切换（DATABASE_TYPE） |
+| testify | 1.11 | 测试断言 | 断言库、mock 支持 |
 
 ### 2.3 基础设施
 
 | 技术 | 版本 | 用途 | 选型理由 |
 |------|------|------|----------|
-| PostgreSQL | 15+ | 关系数据库 | JSONB 支持、扩展性强、开源 |
-| Redis | 7+ | 缓存 | 高性能、数据结构丰富、持久化 |
 | Docker | 24+ | 容器化 | 标准化部署、环境隔离 |
-| Docker Compose | - | 容器编排 | 本地开发、多容器管理 |
+| Docker Compose | — | 容器编排 | 本地开发、多容器管理 |
+| Nginx | — | 反向代理 | 负载均衡、SSL 终止、静态资源 |
 
 ## 3. 组件划分
 
 ### 3.1 前端组件架构
 
 ```
-frontend/
+cmdb-web/frontend/
 ├── src/
-│   ├── main.ts                 # 应用入口
-│   ├── App.vue                 # 根组件
-│   ├── api/                    # API 客户端
-│   │   ├── index.ts            # API 配置
-│   │   ├── ci.ts               # 配置项 API
-│   │   ├── relation.ts         # 关系 API
-│   │   ├── change.ts           # 变更 API
-│   │   ├── user.ts             # 用户 API
-│   │   └── auth.ts             # 认证 API
-│   ├── components/             # 公共组件
-│   │   ├── common/             # 通用组件
-│   │   │   ├── PageHeader.vue
-│   │   │   ├── DataTable.vue
-│   │   │   ├── SearchForm.vue
-│   │   │   └── Loading.vue
-│   │   ├── ci/                 # CI 组件
-│   │   │   ├── CiList.vue
-│   │   │   ├── CiDetail.vue
-│   │   │   ├── CiForm.vue
-│   │   │   └── RelationGraph.vue
-│   │   └── ui/                 # UI 基础组件
-│   │       ├── Button.vue
-│   │       ├── Input.vue
-│   │       └── Modal.vue
-│   ├── views/                  # 页面视图
-│   │   ├── Login.vue
-│   │   ├── Dashboard.vue
-│   │   ├── ci/
-│   │   │   ├── CiListPage.vue
-│   │   │   └── CiDetailPage.vue
-│   │   ├── relation/
-│   │   ├── change/
-│   │   ├── user/
-│   │   └── system/
-│   ├── stores/                 # Pinia 状态管理
-│   │   ├── user.ts
-│   │   ├── ci.ts
-│   │   ├── app.ts
-│   │   └── permission.ts
-│   ├── router/                 # 路由配置
-│   │   ├── index.ts
-│   │   ├── routes.ts
-│   │   └── guards.ts
-│   ├── types/                  # TypeScript 类型
-│   │   ├── ci.ts
-│   │   ├── user.ts
-│   │   └── api.ts
-│   ├── utils/                  # 工具函数
-│   │   ├── request.ts
-│   │   ├── auth.ts
-│   │   └── storage.ts
-│   ├── styles/                 # 样式文件
-│   │   ├── variables.scss
-│   │   └── global.scss
-│   └── assets/                 # 静态资源
-├── tests/                      # 测试文件
-│   ├── e2e/                    # E2E 测试
-│   └── unit/                   # 单元测试
-├── package.json
-├── vite.config.ts
-├── tsconfig.json
-└── playwright.config.ts
+│   ├── app/                    # App Router 页面
+│   │   ├── (app)/             # 主应用路由组
+│   │   │   ├── ci/            # CI 管理（list/[id]/[id]/edit/[id]/relations/types/tags）
+│   │   │   ├── relation/      # 关系图谱
+│   │   │   ├── change/        # 变更管理
+│   │   │   ├── dashboard/     # 仪表盘
+│   │   │   └── system/        # audit/notification/role/user
+│   │   ├── login/             # 登录页
+│   │   ├── layout.tsx         # 根布局
+│   │   ├── page.tsx           # 首页
+│   │   └── globals.css        # 全局样式（125 行，无 CSS Modules）
+│   ├── components/            # React 组件
+│   │   ├── layout/            # 布局组件
+│   │   ├── dashboard/         # 仪表盘组件（ActivityFeed/CIDistribution/ResourceTrend）
+│   │   └── relation/          # 关系图组件（RelationGraph, @antv/g6）
+│   └── stores/                # Zustand stores
+│       ├── user.ts            # 用户/token/axios 实例（persist: cmdb-user-storage）
+│       ├── ci.ts              # CI 状态
+│       ├── change.ts          # 变更状态
+│       ├── relation.ts        # 关系/图谱状态
+│       ├── tag.ts             # 标签状态
+│       ├── permission.ts      # 权限状态
+│       ├── layout.ts          # 布局状态
+│       └── index.ts           # 导出
+├── tests/e2e/                 # Playwright E2E（Page Object Model）
+│   ├── pages/                 # POM 页面对象
+│   ├── setup/                 # mock-routes.ts（拦截 **/api/**）
+│   └── *.spec.ts              # 测试用例
+├── package.json               # 无 typecheck 脚本；lint = next lint（已弃用）
+├── playwright.config.ts       # baseURL 127.0.0.1:3001, channel 'chrome'
+└── next.config.mjs            # eslint.ignoreDuringBuilds:true, typescript.ignoreBuildErrors:false
 ```
 
 ### 3.2 后端服务架构
 
 ```
-backend/
-├── app/
-│   ├── main.py                 # 应用入口
-│   ├── api/                    # API 路由层
-│   │   ├── deps.py             # 依赖注入
-│   │   ├── auth.py             # 认证路由
-│   │   ├── ci.py               # 配置项路由
-│   │   ├── relation.py         # 关系路由
-│   │   ├── change.py           # 变更路由
-│   │   ├── user.py             # 用户路由
-│   │   └── system.py           # 系统路由
-│   ├── core/                   # 核心配置
-│   │   ├── config.py           # 配置管理
-│   │   ├── security.py         # 安全相关
-│   │   └── exceptions.py       # 异常处理
-│   ├── models/                 # 数据模型
-│   │   ├── base.py             # 基类模型
-│   │   ├── user.py             # 用户模型
-│   │   ├── ci.py               # CI 模型
-│   │   ├── relation.py         # 关系模型
-│   │   └── audit.py            # 审计模型
-│   ├── schemas/                # Pydantic 模式
-│   │   ├── user.py             # 用户模式
-│   │   ├── ci.py               # CI 模式
-│   │   ├── relation.py         # 关系模式
-│   │   └── common.py           # 通用模式
-│   ├── services/               # 业务逻辑层
-│   │   ├── ci_service.py       # CI 服务
-│   │   ├── relation_service.py # 关系服务
-│   │   ├── change_service.py   # 变更服务
-│   │   ├── user_service.py     # 用户服务
-│   │   ├── auth_service.py     # 认证服务
-│   │   └── sync/               # 同步服务
-│   │       ├── k8s_sync.py     # K8s 同步
-│   │       ├── cloud_sync.py   # 云同步
-│   │       └── monitor_sync.py # 监控同步
-│   ├── db/                     # 数据库层
-│   │   ├── session.py          # 会话管理
-│   │   ├── base.py             # 基类
-│   │   └── crud.py             # CRUD 操作
-│   └── middleware/             # 中间件
-│       ├── auth.py             # 认证中间件
-│       ├── permission.py       # 权限中间件
-│       └── audit.py            # 审计中间件
-├── tests/                      # 测试文件
-│   ├── conftest.py             # 测试配置
-│   ├── test_api/               # API 测试
-│   └── test_services/          # 服务测试
-├── alembic/                    # 数据库迁移
-├── requirements.txt
+cmdb-web/backend-go/
+├── cmd/main.go                # 入口（AutoMigrate 6/10 模型；gin.DebugMode 硬编码）
+├── internal/
+│   ├── config/                # 配置（SECRET_KEY 默认弱密钥）
+│   ├── database/              # DB 操作（SQLite/Postgres/MySQL 可切换）
+│   ├── middleware/            # JWT 鉴权（无权限校验）
+│   ├── models/                # GORM 模型（snake_case json tag + TimestampMixin）
+│   ├── routes/                # Gin handlers（camelCase gin.H + snake_case 模型混用）
+│   ├── schemas/               # 请求/响应 struct（死契约：零 handler 使用）
+│   ├── security/              # 安全相关
+│   ├── seed/                  # 种子数据（启动时写 ciTypes/tags，不检查错误）
+│   └── utils/                 # 工具（json.go 有 StringToJSON，未被复用）
+├── Makefile                   # test/test-fast/test-ci/test-cover/test-unit/test-integration/build
+├── .env.example               # GIN_MODE=release（被 cmd/main.go:45 覆盖）
 └── Dockerfile
 ```
 
@@ -234,12 +148,10 @@ backend/
 ```mermaid
 sequenceDiagram
     participant User as 用户
-    participant FE as 前端
-    participant BE as 后端 API
-    participant Auth as 认证服务
+    participant FE as Next.js 前端
+    participant BE as Go + Gin 后端
+    participant Auth as JWT 中间件
     participant DB as 数据库
-    participant Redis as 缓存
-    participant Sync as 同步服务
 
     User->>FE: 登录请求
     FE->>BE: POST /api/auth/login
@@ -249,7 +161,7 @@ sequenceDiagram
     Auth->>Auth: 生成 JWT Token
     Auth-->>BE: 返回 Token
     BE-->>FE: 返回登录结果
-    FE->>Redis: 缓存 Token
+    FE->>FE: 存储 Token (localStorage)
     FE-->>User: 登录成功
 
     User->>FE: 查询 CI 列表
@@ -258,85 +170,27 @@ sequenceDiagram
     Auth-->>BE: 验证通过
     BE->>DB: 查询 CI 数据
     DB-->>BE: 返回 CI 列表
-    BE->>Redis: 缓存查询结果
     BE-->>FE: 返回 CI 数据
     FE-->>User: 展示 CI 列表
 ```
 
 ## 4. 部署架构
 
-### 4.1 开发环境部署
+### 4.1 开发环境
 
-```mermaid
-graph LR
-    subgraph "开发环境"
-        DevPC[开发者电脑]
-        DockerDocker[Docker Desktop]
+```bash
+# 前端
+cd cmdb-web/frontend
+npm install --legacy-peer-deps
+npm run dev          # port 3000
 
-        subgraph "Docker Compose"
-            FrontendDev[前端开发服务器]
-            BackendDev[后端开发服务器]
-            PostgresDev[(PostgreSQL)]
-            RedisDev[(Redis)]
-        end
-    end
-
-    DevPC --> DockerDocker
-    DockerDocker --> FrontendDev
-    DockerDocker --> BackendDev
-    DockerDocker --> PostgresDev
-    DockerDocker --> RedisDev
-    FrontendDev --> BackendDev
-    BackendDev --> PostgresDev
-    BackendDev --> RedisDev
+# 后端
+cd cmdb-web/backend-go
+go mod download
+go run cmd/main.go   # port 8000
 ```
 
-### 4.2 生产环境部署
-
-```mermaid
-graph TB
-    subgraph "阿里云 VPC"
-        SLB[SLB 负载均衡]
-
-        subgraph "Kubernetes 集群"
-            subgraph "Namespace: cmdb"
-                Ingress[Ingress Controller]
-
-                subgraph "Deployment: frontend"
-                    FrontendPod1[Frontend Pod 1]
-                    FrontendPod2[Frontend Pod 2]
-                end
-
-                subgraph "Deployment: backend"
-                    BackendPod1[Backend Pod 1]
-                    BackendPod2[Backend Pod 2]
-                    BackendPod3[Backend Pod 3]
-                end
-            end
-        end
-
-        subgraph "RDS"
-            PostgreSQL[RDS PostgreSQL]
-        end
-
-        subgraph "Redis"
-            RedisCluster[Redis 集群]
-        end
-    end
-
-    User((用户)) --> SLB
-    SLB --> Ingress
-    Ingress --> FrontendPod1
-    Ingress --> FrontendPod2
-    FrontendPod1 --> BackendPod1
-    FrontendPod2 --> BackendPod2
-    BackendPod1 --> PostgreSQL
-    BackendPod2 --> PostgreSQL
-    BackendPod1 --> RedisCluster
-    BackendPod2 --> RedisCluster
-```
-
-### 4.3 Docker Compose 配置
+### 4.2 Docker Compose
 
 ```yaml
 version: '3.8'
@@ -347,24 +201,21 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "3000:3000"
     depends_on:
       - backend
-    environment:
-      - VITE_API_URL=http://backend:8000
 
   backend:
     build:
-      context: ./backend
+      context: ./backend-go
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     depends_on:
       - postgres
-      - redis
     environment:
+      - DATABASE_TYPE=postgres
       - DATABASE_URL=postgresql://cmdb:cmdb@postgres:5432/cmdb
-      - REDIS_URL=redis://redis:6379
       - SECRET_KEY=your-secret-key
 
   postgres:
@@ -378,46 +229,36 @@ services:
     ports:
       - "5432:5432"
 
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
-
 volumes:
   postgres_data:
-  redis_data:
 ```
 
 ## 5. 数据流设计
 
-### 5.1 配置项数据流
+### 5.1 CI 数据流
 
 ```mermaid
 flowchart LR
     subgraph "数据源"
-        K8sSource[K8s API]
-        CloudSource[云 API]
         ManualSource[手动录入]
+        K8sSource[K8s API (预留)]
+        CloudSource[云 API (预留)]
     end
 
     subgraph "数据处理"
-        Sync[同步服务]
         Validate[数据验证]
-        Transform[数据转换]
+        Transform[数据转换 (Tags JSON→Array)]
     end
 
     subgraph "数据存储"
-        CI[配置项表]
-        Relation[关系表]
-        History[历史表]
+        CI[configuration_items 表]
+        Relation[relations 表]
+        History[audit_logs 表]
     end
 
-    K8sSource --> Sync
-    CloudSource --> Sync
     ManualSource --> Validate
-    Sync --> Validate
+    K8sSource --> Validate
+    CloudSource --> Validate
     Validate --> Transform
     Transform --> CI
     Transform --> Relation
@@ -449,12 +290,8 @@ sequenceDiagram
         FE->>BE: POST /api/changes/:id/approve
         BE->>Change: 更新变更状态
         Change->>DB: 更新状态 (approved)
-        Change->>Change: 执行变更
-    else 自动批准
-        Change->>Change: 执行变更
     end
 
-    Change->>DB: 保存 CI 新版本
     Change->>DB: 记录审计日志
     Change->>Notify: 发送变更通知
     Notify-->>User: 通知申请人
@@ -469,7 +306,7 @@ sequenceDiagram
     participant User as 用户
     participant FE as 前端
     participant BE as 后端
-    participant Auth as 认证服务
+    participant Auth as JWT 中间件
     participant DB as 数据库
 
     User->>FE: 输入用户名密码
@@ -478,7 +315,7 @@ sequenceDiagram
     Auth->>DB: 查询用户
     DB-->>Auth: 用户数据
     Auth->>Auth: 验证密码 (bcrypt)
-    Auth->>Auth: 生成 JWT Token
+    Auth->>Auth: 生成 JWT Token (HS256, 7天)
 
     alt 验证成功
         Auth-->>BE: 返回 Token
@@ -494,155 +331,102 @@ sequenceDiagram
 
 ### 6.2 授权机制
 
-```python
-# JWT Token 结构
-{
-    "header": {
-        "alg": "HS256",
-        "typ": "JWT"
-    },
-    "payload": {
-        "sub": "user-uuid",
-        "username": "admin",
-        "role": "super_admin",
-        "permissions": ["ci:create", "ci:read", "..."],
-        "exp": 1234567890,
-        "iat": 1234567800
-    },
-    "signature": "HMACSHA256(...)"
-}
-```
+- **RBAC**：13 个内置权限码（`ci:read`、`ci:write`、`change:approve` 等），定义在 `internal/routes/permission.go:12-26`
+- **前端**：`stores/permission.ts` + `stores/user.ts` 消费权限码；`hasPermission()` 靠 `user.role === 'admin'` 短路
+- **后端**：`internal/middleware/auth.go` 只验 JWT、只塞 `user_id/username/role`；**无权限校验中间件**（D2 债务）
+- **权限数据格式**：三处不一致（seed 写 JSON 串、UpdateRolePermissions 写逗号串、Login/GetMe 塞进单元素数组）— D3 债务
 
-### 6.3 安全中间件
+### 6.3 安全注意事项
 
-```python
-from fastapi import Request, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
-security = HTTPBearer()
-
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-) -> User:
-    """获取当前用户"""
-    token = credentials.credentials
-
-    try:
-        # 验证 Token
-        payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=["HS256"]
-        )
-        user_id = payload.get("sub")
-
-        # 查询用户
-        user = await get_user_by_id(user_id)
-        if not user:
-            raise HTTPException(401, "用户不存在")
-
-        return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token 已过期")
-    except jwt.InvalidTokenError:
-        raise HTTPException(401, "Token 无效")
-```
+- SECRET_KEY 默认值 `cmdb-secret-key-change-in-production`（弱默认，D5）
+- CORS 读 `CORS_ALLOWED_ORIGINS` 而 `.env.example` 用 `ALLOWED_ORIGINS`（D6）
+- Token 存 localStorage（违反自有反模式，D7）
+- 登录有 mock 回退（`admin/admin123` → `mock-jwt-token-*`，D7b）
+- `gin.SetMode(gin.DebugMode)` 硬编码覆盖 `GIN_MODE=release`（D1c）
 
 ## 7. API 设计规范
 
-### 7.1 RESTful 风格
-
-| 操作 | HTTP 方法 | 端点 | 描述 |
-|------|----------|------|------|
-| 列表查询 | GET | /api/ci | 获取 CI 列表 |
-| 创建 | POST | /api/ci | 创建新 CI |
-| 详情 | GET | /api/ci/{id} | 获取 CI 详情 |
-| 更新 | PUT | /api/ci/{id} | 更新 CI |
-| 删除 | DELETE | /api/ci/{id} | 删除 CI |
-| 批量导入 | POST | /api/ci/batch/import | 批量导入 |
-| 批量导出 | GET | /api/ci/batch/export | 批量导出 |
-
-### 7.2 响应格式
+### 7.1 响应格式
 
 ```json
 {
     "success": true,
-    "data": {},
-    "message": "操作成功",
-    "timestamp": 1234567890
+    "message": "ok",
+    "data": {}
 }
 ```
 
-### 7.3 错误响应
+所有端点统一使用 `schemas.BaseResponse{Success, Message, Data}`。
+
+### 7.2 分页格式
 
 ```json
-{
-    "success": false,
-    "error": {
-        "code": "VALIDATION_ERROR",
-        "message": "参数验证失败",
-        "details": [
-            {
-                "field": "name",
-                "message": "名称不能为空"
-            }
-        ]
-    },
-    "timestamp": 1234567890
-}
-```
-
-### 7.4 分页参数
-
-```json
-// 请求参数
-{
-    "page": 1,
-    "page_size": 20,
-    "sort_by": "name",
-    "sort_order": "asc"
-}
-
-// 响应格式
 {
     "success": true,
+    "message": "ok",
     "data": {
         "items": [],
-        "total": 100,
-        "page": 1,
-        "page_size": 20,
-        "total_pages": 5
+        "total": 100
     }
 }
 ```
 
-## 8. 监控与日志
+部分端点（audit、ci-types、tags、notifications）返回 `items` + `total`；部分端点（changes、ci）返回 `items` + `total`；部分端点（users、roles）使用 `schemas.PaginatedResponse`（`data` + `total` + `page` + `page_size`）。
 
-### 8.1 监控指标
+### 7.3 路由注册顺序
 
-| 指标类型 | 指标名称 | 说明 |
-|----------|----------|------|
-| 应用指标 | request_count | 请求总数 |
-| 应用指标 | request_duration | 请求耗时 |
-| 应用指标 | error_count | 错误数量 |
-| 数据库指标 | connection_count | 连接数 |
-| 数据库指标 | query_duration | 查询耗时 |
-| 缓存指标 | hit_rate | 缓存命中率 |
-| 系统指标 | cpu_usage | CPU 使用率 |
-| 系统指标 | memory_usage | 内存使用率 |
+Gin 中静态段必须先于 `:id`。`internal/routes/router.go` 中以下路径已标注「必须在 :id 之前」：
+- `/relations/graph`、`/relations/impact/:ciId`
+- `/changes/recent`、`/changes/:id/approve`、`/changes/:id/reject`
 
-### 8.2 日志格式
+### 7.4 权限码
 
-```json
-{
-    "timestamp": "2024-01-01T00:00:00Z",
-    "level": "INFO",
-    "logger": "app.api.ci",
-    "message": "CI created successfully",
-    "context": {
-        "user_id": "uuid",
-        "ci_id": "uuid",
-        "ip": "127.0.0.1"
-    }
-}
-```
+后端内置 13 个码（`internal/routes/permission.go:12-26`）：`ci:read`、`ci:write`、`change:read`、`change:write`、`change:approve`、`user:read`、`user:write`、`role:read`、`role:write`、`relation:read`、`relation:write`、`audit:read`、`dashboard:read`。
+
+前端/文档使用 `ci:create`（`docs/rbac-matrix.md`）— 命名漂移（D4）。
+
+## 8. 实体对齐契约
+
+详见 `.omp/agents/chief.md` §1.6。核心发现：
+
+- **3 个实体完全对齐**：CI（列表+详情）、Relation 列表、Relation 图谱
+- **5 个实体错位**：AuditLog（4 列永远为空）、CIType（字段全 undefined）、Tag（同病）、Notification（isRead 恒 undefined ⇒ 所有通知显示「已读」）、Change（changeType 语义错位 + createdBy 不存在）
+- **权限数据**：Role.permissions 类型错位（前端期望对象数组，后端给 JSON 串单元素数组）
+
+### 8.1 命名约定
+
+- 线上统一 **camelCase**（前端期望）
+- 后端 handler 手搓 `gin.H` 已是 camelCase
+- 直接返回 GORM 模型的端点（AuditLog/Tag/CIType/Notification）必须改为手搓映射或加 json tag
+- **禁止**混用 camelCase 和 snake_case
+
+### 8.2 契约文件状态
+
+`internal/schemas/schemas.go` 定义了 CIResponse/RelationResponse/ChangeResponse（snake_case）但**零 handler 使用** —— 死契约，需清理或真正接入。
+
+## 9. 监控与日志
+
+### 9.1 日志
+
+Go 标准 `log` 包，启动时打印路由表（`gin.DebugMode` 硬编码）。生产环境应设 `GIN_MODE=release`。
+
+### 9.2 测试
+
+- **前端**：Playwright E2E only（无单元测试）。Mock 模式拦截 `**/api/**`，按 `url.includes` 分派
+- **后端**：Go testing + SQLite in-memory（`:memory:` 每连接独立库 ⇒ flaky）
+- **门禁**：`go build ./...` ✅、`go vet ./...` ✅、`go test ./...` ⚠️ flaky、`npm run build` ⚠️（需先 install）、`npm run lint` ❌ 不可用
+
+## 10. 已知债务
+
+详见 `.omp/agents/chief.md` §1.5（D1–D18）。关键项：
+
+| # | 债务 | 影响 |
+|---|---|---|
+| D1 | `go test` flaky（`:memory:` 每连接独立） | 门禁不可信 |
+| D1b | 生产启动缺 4 张表（Tag/Notification/CIType/CIVersion） | `/api/tags`、`/api/ci-types`、`/api/notifications`、`/api/versions` 全挂 |
+| D3 | 权限存储格式三处不一致 | 前端权限判断恒失效 |
+| D7 | token 落 localStorage | XSS 可窃 token |
+| D7b | 前端登录 mock 回退 | 后端宕机仍可「登录」 |
+| D10 | AGENTS.md 事实性失实（已修正） | AI 会照着写出错误代码 |
+| D11 | docs/architecture.md Vue+FastAPI（已修正） | 同上 |
+| D12 | Python/FastAPI 残留 33 个 .py | 双后端并存；Go 缺 `GET /api/audit/export` |
